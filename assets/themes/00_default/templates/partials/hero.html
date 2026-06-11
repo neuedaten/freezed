@@ -1,0 +1,19 @@
+<section class="hero">
+    <div class="container">
+        <f:if condition="{eyebrow}">
+            <span class="hero__eyebrow">{eyebrow}</span>
+        </f:if>
+        <h1 class="hero__title">{title}</h1>
+        <f:if condition="{subtitle}">
+            <p class="hero__subtitle">{subtitle}</p>
+        </f:if>
+        <div class="hero__actions">
+            <f:if condition="{primaryLabel}">
+                <a class="btn btn--primary" href="{primaryUrl}">{primaryLabel}</a>
+            </f:if>
+            <f:if condition="{secondaryLabel}">
+                <a class="btn btn--ghost" href="{secondaryUrl}">{secondaryLabel}</a>
+            </f:if>
+        </div>
+    </div>
+</section>

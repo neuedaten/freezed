@@ -1,0 +1,41 @@
+<f:layout name="page" />
+
+{namespace freezed=Neuedaten\Freezed\ViewHelpers}
+
+<f:section name="content">
+
+    <f:render partial="hero" arguments="{
+        eyebrow: heroEyebrow,
+        title: heroTitle,
+        subtitle: heroSubtitle,
+        primaryLabel: 'Get started',
+        primaryUrl: '/features.html',
+        secondaryLabel: 'View on GitHub',
+        secondaryUrl: 'https://github.com/neuedaten/freezed'
+    }" />
+
+    <f:render partial="feature-section" arguments="{
+        title: featuresTitle,
+        lead: featuresLead,
+        features: features
+    }" />
+
+    <section class="section">
+        <div class="container prose">
+            <h2>Templates, not magic</h2>
+            <p class="prose__lead">
+                Freezed renders every page with the TYPO3 Fluid template engine —
+                the same engine that powers TYPO3 CMS. You get layouts, partials,
+                sections and ViewHelpers, compiled to plain static HTML.
+            </p>
+            <p>
+                This whole page is a Fluid template in
+                <code>content/pages/home/index.html</code>. Its variables live next
+                to it in <code>variables.php</code>, and the look comes from the
+                <code>00_default</code> theme. Edit any of them and run
+                <code>freezed build</code> to regenerate the site.
+            </p>
+        </div>
+    </section>
+
+</f:section>

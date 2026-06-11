@@ -1,0 +1,10 @@
+<footer class="site-footer">
+    <div class="container site-footer__inner">
+        <span>&copy; {currentYear} {siteName}. Built with <a href="https://github.com/neuedaten/freezed">Freezed</a>.</span>
+        <nav class="site-footer__links" aria-label="Footer">
+            <f:for each="{navigation}" as="item">
+                <a href="{item.url}">{item.label}</a>
+            </f:for>
+        </nav>
+    </div>
+</footer>

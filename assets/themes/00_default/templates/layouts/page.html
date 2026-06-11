@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="{siteLanguage}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{pageTitle} &middot; {siteName}</title>
+    <meta name="description" content="{pageDescription}">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="{freezed:resource(path: 'assets/css/main.css', context: 'theme')}">
+    <f:render section="head" optional="1" />
+</head>
+<body>
+
+<f:render partial="site-header" arguments="{_all}" />
+
+<main>
+    <f:render section="content" />
+</main>
+
+<f:render partial="site-footer" arguments="{_all}" />
+
+<script src="{freezed:resource(path: 'assets/js/main.js', context: 'theme')}" defer></script>
+</body>
+</html>

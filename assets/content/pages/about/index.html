@@ -1,0 +1,43 @@
+<f:layout name="page" />
+
+<f:section name="content">
+    <section class="section">
+        <div class="container prose">
+            <h1>{pageTitle}</h1>
+            <p class="prose__lead">
+                Freezed is a small static site generator with one defining trait:
+                it renders your pages with the TYPO3 Fluid template engine.
+            </p>
+
+            <h2>Why Fluid?</h2>
+            <p>
+                Fluid is a mature, well-documented templating language with a clean
+                separation of layouts, partials and sections. If you have worked with
+                TYPO3, it will feel immediately familiar. If you haven't, it is an
+                approachable, HTML-first syntax with first-class support for reusable
+                components and custom ViewHelpers.
+            </p>
+
+            <h2>How a build works</h2>
+            <p>Running <code>freezed build</code> does three things:</p>
+            <ol>
+                <li>It scans <code>content/</code> for content types and pages.</li>
+                <li>It renders each page through the themes in <code>themes/</code>.</li>
+                <li>It writes static HTML and copied assets into <code>public/</code>.</li>
+            </ol>
+
+            <blockquote>
+                No databases, no runtime, no surprises — just templates in, static
+                files out.
+            </blockquote>
+
+            <h2>Status</h2>
+            <p>
+                Freezed is currently in <strong>beta</strong>. The core build pipeline
+                is stable, and the API may still evolve before a 1.0 release. Feedback
+                and issues are very welcome on
+                <a href="https://github.com/neuedaten/freezed">GitHub</a>.
+            </p>
+        </div>
+    </section>
+</f:section>

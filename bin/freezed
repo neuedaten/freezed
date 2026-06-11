@@ -1,0 +1,152 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Freezed CLI entry point.
+ *
+ * Works in three layouts:
+ *  - Installed as a Composer dependency  (vendor/bin/freezed -> proxy sets $_composer_autoload_path)
+ *  - Cloned/standalone package           (bin/freezed with its own vendor/)
+ *  - Inside a project skeleton           (the project's vendor/autoload.php)
+ */
+
+/* ---------------------------------------------------------------------------
+ * 1) Locate and load the Composer autoloader.
+ * ------------------------------------------------------------------------- */
+$autoloadCandidates = [
+    $_composer_autoload_path ?? null,          // set by the Composer bin proxy
+    __DIR__ . '/../vendor/autoload.php',       // standalone clone of this package
+    __DIR__ . '/../../../autoload.php',         // installed in vendor/neuedaten/freezed/bin
+    __DIR__ . '/../../../../vendor/autoload.php',
+];
+
+$autoloadFound = false;
+foreach ($autoloadCandidates as $candidate) {
+    if ($candidate && file_exists($candidate)) {
+        require $candidate;
+        $autoloadFound = true;
+        break;
+    }
+}
+
+if (!$autoloadFound) {
+    fwrite(STDERR, "Freezed: could not locate Composer autoloader. Run 'composer install' first." . PHP_EOL);
+    exit(1);
+}
+
+use Neuedaten\Freezed\Commands\CompileCommand;
+use Neuedaten\Freezed\Commands\InstallCommand;
+use Neuedaten\Freezed\Services\ConfigService;
+
+/* ---------------------------------------------------------------------------
+ * 2) Determine the project root (where the site lives).
+ *    Priority: FREEZED_ROOT env > directory containing freezed.config.php
+ *    (searched upward from CWD) > current working directory.
+ * ------------------------------------------------------------------------- */
+$configFileName = 'freezed.config.php';
+
+function freezed_resolve_project_root(string $configFileName): string
+{
+    // Explicit override wins.
+    $envRoot = getenv('FREEZED_ROOT');
+    if ($envRoot && is_dir($envRoot)) {
+        return realpath($envRoot);
+    }
+
+    // Walk up from the current working directory looking for the config file.
+    $dir = getcwd() ?: __DIR__;
+    $previous = null;
+    while ($dir && $dir !== $previous) {
+        if (file_exists($dir . DIRECTORY_SEPARATOR . $configFileName)) {
+            return $dir;
+        }
+        $previous = $dir;
+        $dir = dirname($dir);
+    }
+
+    // No config found yet (e.g. before `install`): use the current directory.
+    return getcwd() ?: __DIR__;
+}
+
+/* ---------------------------------------------------------------------------
+ * 3) Parse the command.
+ * ------------------------------------------------------------------------- */
+$task = $argv[1] ?? 'compile';
+
+if (in_array($task, ['-h', '--help', 'help'], true)) {
+    freezed_print_help();
+    exit(0);
+}
+
+if (in_array($task, ['-V', '--version', 'version'], true)) {
+    fwrite(STDOUT, 'Freezed ' . freezed_version() . PHP_EOL);
+    exit(0);
+}
+
+$projectRoot = freezed_resolve_project_root($configFileName);
+
+/* ---------------------------------------------------------------------------
+ * 4) Load configuration and run.
+ * ------------------------------------------------------------------------- */
+$configFile = $projectRoot . DIRECTORY_SEPARATOR . $configFileName;
+$config = file_exists($configFile) ? include $configFile : [];
+
+$configService = ConfigService::getInstance();
+$configService->setConfig($config);
+$configService->setValue('[projectRoot]', $projectRoot);
+
+switch ($task) {
+    case 'install':
+    case 'init':
+        (new InstallCommand())->execute();
+        break;
+    case 'build':
+    case 'compile':
+    default:
+        if (!file_exists($configFile)) {
+            fwrite(STDERR, "Freezed: no $configFileName found in $projectRoot." . PHP_EOL
+                . "Run 'freezed install' first to scaffold a project." . PHP_EOL);
+            exit(1);
+        }
+        (new CompileCommand())->execute();
+        break;
+}
+
+/* ---------------------------------------------------------------------------
+ * Helpers
+ * ------------------------------------------------------------------------- */
+function freezed_version(): string
+{
+    $composerJson = __DIR__ . '/../composer.json';
+    if (file_exists($composerJson)) {
+        $data = json_decode((string) file_get_contents($composerJson), true);
+        if (isset($data['version'])) {
+            return (string) $data['version'];
+        }
+    }
+    return '0.1.0-beta';
+}
+
+function freezed_print_help(): void
+{
+    $version = freezed_version();
+    fwrite(STDOUT, <<<TXT
+Freezed $version — a static site generator powered by TYPO3 Fluid.
+
+Usage:
+  freezed <command>
+
+Commands:
+  install, init     Scaffold the project (content/, themes/, static/, public/, freezed.config.php).
+  build, compile    Render the site into the public/ directory. (default)
+  help, --help      Show this help.
+  version, --version  Show the version.
+
+Environment:
+  FREEZED_ROOT      Override the project root directory.
+
+The project root is auto-detected by searching upward from the current
+directory for a freezed.config.php file, falling back to the current directory.
+
+TXT);
+}

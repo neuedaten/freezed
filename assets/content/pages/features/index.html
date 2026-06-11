@@ -1,0 +1,44 @@
+<f:layout name="page" />
+
+<f:section name="content">
+
+    <f:render partial="hero" arguments="{
+        eyebrow: 'Features',
+        title: 'Built around a few clear ideas',
+        subtitle: 'Freezed keeps its surface area small so the whole tool fits in your head.',
+        primaryLabel: 'Read the docs',
+        primaryUrl: 'https://github.com/neuedaten/freezed#documentation'
+    }" />
+
+    <f:render partial="feature-section" arguments="{
+        title: featuresTitle,
+        lead: featuresLead,
+        features: features
+    }" />
+
+    <section class="section">
+        <div class="container prose">
+            <h2>Project structure</h2>
+            <p>A Freezed project is just a handful of folders:</p>
+            <pre><code>my-site/
+├─ content/        # your pages, grouped by content type
+│  └─ pages/
+│     └─ home/
+│        ├─ index.html      # a Fluid template
+│        └─ variables.php   # variables for this page
+├─ themes/         # one or more stackable themes
+├─ static/         # files copied verbatim into the build
+├─ public/         # generated output (git-ignored)
+└─ freezed.config.php</code></pre>
+
+            <h2>The resource ViewHelper</h2>
+            <p>
+                Reference a theme asset and Freezed will copy it into the build and
+                return its public path:
+            </p>
+            <pre><code>&lt;link rel="stylesheet"
+  href="&#123;freezed:resource(path: 'assets/css/main.css', context: 'theme')&#125;"&gt;</code></pre>
+        </div>
+    </section>
+
+</f:section>

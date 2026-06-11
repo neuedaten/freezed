@@ -1,0 +1,19 @@
+<section class="section section--soft">
+    <div class="container">
+        <div class="section__head">
+            <h2 class="section__title">{title}</h2>
+            <f:if condition="{lead}">
+                <p class="section__lead">{lead}</p>
+            </f:if>
+        </div>
+        <div class="feature-grid">
+            <f:for each="{features}" as="feature">
+                <article class="feature">
+                    <div class="feature__icon">{feature.icon}</div>
+                    <h3 class="feature__title">{feature.title}</h3>
+                    <p class="feature__text">{feature.text}</p>
+                </article>
+            </f:for>
+        </div>
+    </div>
+</section>

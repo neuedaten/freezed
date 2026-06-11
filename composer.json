@@ -1,0 +1,26 @@
+{
+  "name": "neuedaten/freezed",
+  "type": "library",
+  "description": "Freezed is a static site generator powered by the TYPO3 Fluid template engine.",
+  "keywords": ["static site generator", "ssg", "fluid", "typo3fluid", "static", "templating"],
+  "homepage": "https://github.com/neuedaten/freezed",
+  "authors": [
+    {
+      "name": "Bastian Schwabe",
+      "role": "Developer"
+    }
+  ],
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=8.1",
+    "symfony/property-access": "^7.0",
+    "typo3fluid/fluid": "^2.10"
+  },
+  "require-dev": {},
+  "autoload": {
+    "psr-4": {
+      "Neuedaten\\Freezed\\": "Classes"
+    }
+  },
+  "bin": ["bin/freezed"]
+}
