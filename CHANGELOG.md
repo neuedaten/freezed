@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- CLI build options: pass `--<key>:<value>` (or `--<key>=<value>`) to
+  `freezed build`. Options are collected into a build configuration and exposed
+  to templates via the `build` variable, e.g. `--enviroment:development` is
+  available as `{build.enviroment}`. Value-less flags (e.g. `--debug`) resolve
+  to `true`. Options can be combined with the command.
+
 ## [0.1.0-beta] - 2026-06-10
 
 First public beta.

@@ -12,7 +12,7 @@ or as a **library** added to an existing project.
 ## Option A — project skeleton (recommended)
 
 ```bash
-composer create-project neuedaten/freezed-skeleton my-site
+composer create-project --stability=beta neuedaten/freezed-skeleton my-site
 cd my-site
 ```
 
@@ -44,6 +44,38 @@ Then scaffold the project structure and build:
 `freezed install` is **non-destructive**: it only creates folders that don't
 exist and only copies the default theme, example content and config when the
 target locations are empty. Running it again on an existing project is safe.
+
+## Beta stability
+
+Freezed is currently published as a **beta**, so both the engine and the skeleton
+are only available as pre-release versions. Composer defaults to *stable*, so
+during the beta you need to opt in:
+
+- **The skeleton** — pass `--stability=beta` to `create-project` (the package's
+  own `minimum-stability` does **not** affect how `create-project` selects the
+  skeleton itself):
+
+  ```bash
+  composer create-project --stability=beta neuedaten/freezed-skeleton my-site
+  ```
+
+- **The library** — add an explicit beta flag when requiring it:
+
+  ```bash
+  composer require neuedaten/freezed:@beta
+  ```
+
+- **Or configure your project once** in `composer.json`:
+
+  ```json
+  {
+      "minimum-stability": "beta",
+      "prefer-stable": true
+  }
+  ```
+
+Once a stable `1.0` is tagged, none of this is necessary — a plain
+`composer require neuedaten/freezed` will resolve the stable release.
 
 ## How Freezed finds your project
 

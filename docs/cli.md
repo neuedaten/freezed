@@ -4,7 +4,7 @@ Freezed ships a single command: `freezed`. After a Composer install it is
 available at `./vendor/bin/freezed`.
 
 ```bash
-./vendor/bin/freezed <command>
+./vendor/bin/freezed <command> [options]
 ```
 
 ## Commands
@@ -27,6 +27,32 @@ available at `./vendor/bin/freezed`.
 Renders all content through the active themes and writes static files to
 `public/`. Requires a `freezed.config.php` in the project root; if none is found
 it tells you to run `install` first.
+
+#### Build options
+
+Pass build options as `--<key>:<value>` (or `--<key>=<value>`). Every option is
+collected into a build configuration that is exposed to your templates through
+the `build` variable:
+
+```bash
+./vendor/bin/freezed build --enviroment:development
+```
+
+```html
+<f:if condition="{build.enviroment} == 'development'">
+    <!-- only rendered for development builds -->
+</f:if>
+```
+
+Options can be combined with the command and with each other:
+
+```bash
+./vendor/bin/freezed build --enviroment:staging --debug
+```
+
+A flag without a value (e.g. `--debug`) is exposed as `true`. Options not passed
+on the command line are simply absent from `build`, so the condition above
+evaluates to false for a default build.
 
 ### `freezed install`
 

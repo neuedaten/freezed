@@ -43,7 +43,7 @@ content/ + themes/   ──►   freezed build   ──►   public/  (static HT
 Use the starter skeleton, which scaffolds a working site for you:
 
 ```bash
-composer create-project neuedaten/freezed-skeleton my-site
+composer create-project --stability=beta neuedaten/freezed-skeleton my-site
 cd my-site
 ./vendor/bin/freezed build
 # open public/index.html
@@ -55,10 +55,13 @@ See [neuedaten/freezed-skeleton](https://github.com/neuedaten/freezed-skeleton).
 ### Add Freezed to an existing project
 
 ```bash
-composer require neuedaten/freezed
+composer require neuedaten/freezed:@beta   # @beta required during the beta
 ./vendor/bin/freezed install   # scaffold content/, themes/, config
 ./vendor/bin/freezed build     # render into public/
 ```
+
+> During the beta you need the `@beta` flag (or `"minimum-stability": "beta"` in
+> your `composer.json`). See [Installation › Beta stability](docs/installation.md#beta-stability).
 
 ## Project structure
 

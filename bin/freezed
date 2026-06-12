@@ -71,14 +71,19 @@ function freezed_resolve_project_root(string $configFileName): string
 /* ---------------------------------------------------------------------------
  * 3) Parse the command.
  * ------------------------------------------------------------------------- */
-$task = $argv[1] ?? 'compile';
+// Separate options (--key:value) from positional arguments so that the task
+// can be combined with build options, e.g. `freezed build --enviroment:development`.
+$positionalArgs = [];
+$buildConfig = freezed_parse_build_options(array_slice($argv, 1), $positionalArgs);
 
-if (in_array($task, ['-h', '--help', 'help'], true)) {
+$task = $positionalArgs[0] ?? 'compile';
+
+if (in_array($task, ['-h', '--help', 'help'], true) || isset($buildConfig['help'])) {
     freezed_print_help();
     exit(0);
 }
 
-if (in_array($task, ['-V', '--version', 'version'], true)) {
+if (in_array($task, ['-V', '--version', 'version'], true) || isset($buildConfig['version'])) {
     fwrite(STDOUT, 'Freezed ' . freezed_version() . PHP_EOL);
     exit(0);
 }
@@ -94,6 +99,7 @@ $config = file_exists($configFile) ? include $configFile : [];
 $configService = ConfigService::getInstance();
 $configService->setConfig($config);
 $configService->setValue('[projectRoot]', $projectRoot);
+$configService->setValue('[buildConfig]', $buildConfig);
 
 switch ($task) {
     case 'install':
@@ -115,6 +121,48 @@ switch ($task) {
 /* ---------------------------------------------------------------------------
  * Helpers
  * ------------------------------------------------------------------------- */
+/**
+ * Parse CLI build options of the form `--key:value` (e.g. `--enviroment:development`).
+ *
+ * Everything that is not an option is collected into $positionalArgs (passed by
+ * reference) so the caller can still detect the task. Recognised option forms:
+ *  --key:value   ->  ['key' => 'value']
+ *  --key=value   ->  ['key' => 'value']
+ *  --key         ->  ['key' => true]   (flag)
+ *
+ * @return array<string, mixed> The parsed build configuration.
+ */
+function freezed_parse_build_options(array $args, array &$positionalArgs): array
+{
+    $buildConfig = [];
+
+    foreach ($args as $arg) {
+        if (str_starts_with($arg, '--')) {
+            $option = substr($arg, 2);
+
+            // Support both `:` and `=` as key/value separators.
+            $separatorPos = strcspn($option, ':=');
+            if ($separatorPos < strlen($option)) {
+                $key = substr($option, 0, $separatorPos);
+                $value = substr($option, $separatorPos + 1);
+            } else {
+                $key = $option;
+                $value = true;
+            }
+
+            if ($key !== '') {
+                $buildConfig[$key] = $value;
+            }
+
+            continue;
+        }
+
+        $positionalArgs[] = $arg;
+    }
+
+    return $buildConfig;
+}
+
 function freezed_version(): string
 {
     $composerJson = __DIR__ . '/../composer.json';
@@ -134,13 +182,18 @@ function freezed_print_help(): void
 Freezed $version — a static site generator powered by TYPO3 Fluid.
 
 Usage:
-  freezed <command>
+  freezed <command> [options]
 
 Commands:
   install, init     Scaffold the project (content/, themes/, static/, public/, freezed.config.php).
   build, compile    Render the site into the public/ directory. (default)
   help, --help      Show this help.
   version, --version  Show the version.
+
+Options:
+  --<key>:<value>   Pass a build option. Options are exposed in templates via
+                    the "build" variable, e.g. --enviroment:development is
+                    available as {build.enviroment}.
 
 Environment:
   FREEZED_ROOT      Override the project root directory.
