@@ -21,7 +21,7 @@ No local PHP? Skip to [Docker](docker.md) — everything runs in a container.
 The fastest way to start is the skeleton, which scaffolds a working site for you:
 
 ```bash
-composer create-project neuedaten/freezed-skeleton my-site
+composer create-project --stability=beta neuedaten/freezed-skeleton my-site
 cd my-site
 ```
 

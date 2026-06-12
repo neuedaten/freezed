@@ -33,9 +33,14 @@ class RenderService
         $paths->setLayoutRootPaths($templatesFromThemes['layoutRootPaths']);
         $paths->setPartialRootPaths($templatesFromThemes['partialRootPaths']);
 
+        // Expose CLI build options (e.g. --enviroment:development) to templates
+        // via the "build" variable, e.g. {build.enviroment}.
+        $variables = $contentType->getVariables();
+        $variables['build'] = ConfigService::getInstance()->getValue('[buildConfig]') ?? [];
+
         $context = new RenderingContext();
         $context->setTemplatePaths($paths);
-        $context->setVariableProvider(new StandardVariableProvider($contentType->getVariables()));
+        $context->setVariableProvider(new StandardVariableProvider($variables));
         $context->setControllerAction('index');
 
         $context->getViewHelperResolver()
