@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1-beta] - 2026-06-12
+
 ## [0.1.0-beta] - 2026-06-10
 
 First public beta.
@@ -35,5 +37,6 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.1.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.1.1-beta...HEAD
+[0.1.1-beta]: https://github.com/neuedaten/freezed/compare/v0.1.1-beta...v0.1.1-beta
 [0.1.0-beta]: https://github.com/neuedaten/freezed/releases/tag/v0.1.0-beta
