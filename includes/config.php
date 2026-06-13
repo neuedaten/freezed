@@ -9,6 +9,7 @@ return [
     'themeTemplatesPath' => '/templates/templates/',
     'themeLayoutsPath' => '/templates/layouts/',
     'themePartialsPath' => '/templates/partials/',
+    'themeComponentsPath' => '/templates/components/',
     'themeStaticPath' => '/static/',
     'mkdirPermissions' => 0777,
 

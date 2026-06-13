@@ -2,6 +2,7 @@
 
 namespace Neuedaten\Freezed\Services;
 
+use Neuedaten\Freezed\Components\ComponentCollection;
 use Neuedaten\Freezed\Domain\Model\ContentType;
 use Neuedaten\Freezed\Domain\Repository\ThemeRepository;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContext;
@@ -43,8 +44,17 @@ class RenderService
         $context->setVariableProvider(new StandardVariableProvider($variables));
         $context->setControllerAction('index');
 
-        $context->getViewHelperResolver()
-            ->addNamespace('freezed', 'Neuedaten\Freezed\\ViewHelpers');
+        $resolver = $context->getViewHelperResolver();
+        $resolver->addNamespace('freezed', 'Neuedaten\Freezed\\ViewHelpers');
+
+        // Register Fluid components from the themes' component folders under the
+        // "component" namespace, e.g. <component:card>. AbstractComponentCollection
+        // implements ViewHelperResolverDelegateInterface, so it can be passed to
+        // addNamespace() directly — same mechanism as the ViewHelpers above.
+        $componentRootPaths = $templatesFromThemes['componentRootPaths'];
+        if ($componentRootPaths !== []) {
+            $resolver->addNamespace('component', new ComponentCollection($componentRootPaths));
+        }
 
 //        $templateParser = new TemplateParser();
 //        $templateParser->setRenderingContext($context);
@@ -61,7 +71,8 @@ class RenderService
         $templates = [
             'templateRootPaths' => [],
             'layoutRootPaths' => [],
-            'partialRootPaths' => []
+            'partialRootPaths' => [],
+            'componentRootPaths' => []
         ];
 
         /* @var $theme \Neuedaten\Freezed\Domain\Model\Theme */
@@ -80,6 +91,11 @@ class RenderService
             $partialRootPath = $theme->getPartialRootPath();
             if ($partialRootPath) {
                 $templates['partialRootPaths'][] = $partialRootPath;
+            }
+
+            $componentRootPath = $theme->getComponentRootPath();
+            if ($componentRootPath) {
+                $templates['componentRootPaths'][] = $componentRootPath;
             }
         }
 

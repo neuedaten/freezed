@@ -32,6 +32,14 @@ class Theme {
         return false;
     }
 
+    public function getComponentRootPath(): string|false {
+        $path = $this->path . ConfigService::getInstance()->getValue('[themeComponentsPath]');
+        if (is_dir($path)) {
+            return $path;
+        }
+        return false;
+    }
+
     public function getStaticPath(): string|false {
         $path = $this->path . ConfigService::getInstance()->getValue('[themeStaticPath]');
         if (is_dir($path)) {

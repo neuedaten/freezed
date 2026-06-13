@@ -1,0 +1,9 @@
+<f:argument name="title" type="string" />
+<f:argument name="variant" type="string" optional="{true}" default="info" />
+
+<aside class="callout callout--{variant}">
+    <h3 class="callout__title">{title}</h3>
+    <div class="callout__body">
+        <f:slot />
+    </div>
+</aside>

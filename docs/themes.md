@@ -9,6 +9,7 @@ themes/00_default/
 ├─ templates/
 │  ├─ layouts/      # page layouts, selected with <f:layout name="…" />
 │  ├─ partials/     # reusable fragments, rendered with <f:render partial="…" />
+│  ├─ components/   # typed, slot-aware tags, called as <component:name />
 │  └─ templates/    # fallback templates (used when a page has no own template)
 ├─ assets/          # css / js / images — copied on demand via the resource ViewHelper
 └─ static/          # copied verbatim into public/ on every build
@@ -50,6 +51,65 @@ Partials are reusable fragments in `templates/partials/`. Render one with:
 
 Inside `partials/hero.html`, the passed arguments are available as variables
 (`{title}`, `{subtitle}`).
+
+## Components
+
+Components are the modern alternative to partials: reusable, **typed** template
+tags with **slots** for child content. They live in `templates/components/` and
+are called like HTML tags via the globally registered `component` namespace — no
+`f:render` and no `xmlns` declaration needed.
+
+Each component lives in its own folder (so component-specific assets can sit next
+to it). The tag name maps to the folder/file: `<component:callout>` resolves to
+`templates/components/Callout/Callout.html`.
+
+```html
+<!-- templates/components/Callout/Callout.html -->
+<f:argument name="title" type="string" />
+<f:argument name="variant" type="string" optional="{true}" default="info" />
+
+<aside class="callout callout--{variant}">
+    <h3 class="callout__title">{title}</h3>
+    <div class="callout__body">
+        <f:slot />
+    </div>
+</aside>
+```
+
+Call it from any template:
+
+```html
+<component:callout title="Heads up" variant="warning">
+    <p>This text is passed into the component's <code>&lt;f:slot /&gt;</code>.</p>
+</component:callout>
+```
+
+Two things set components apart from partials:
+
+- **Typed arguments.** `<f:argument>` declares each input (with `type`,
+  `optional` and `default`). Passing an undeclared argument is an error, which
+  catches typos early.
+- **Isolation.** A component only sees its own arguments and slot content — not
+  the surrounding template variables. That makes it reliably reusable. Pass
+  everything it needs explicitly as arguments.
+
+For multiple insertion points, give slots names and fill them with `<f:fragment>`:
+
+```html
+<!-- component definition -->
+<div class="media"><f:slot name="media" /></div>
+<div class="body"><f:slot name="content" /></div>
+
+<!-- usage -->
+<component:mediaText>
+    <f:fragment name="media"><img src="…" alt="…"></f:fragment>
+    <f:fragment name="content"><p>…</p></f:fragment>
+</component:mediaText>
+```
+
+Components and ViewHelpers can be nested freely. Reach for a partial when you
+just need to factor out shared markup that uses the page's variables; reach for a
+component when you want a self-contained, parameterised building block.
 
 ## Assets and the `resource` ViewHelper
 

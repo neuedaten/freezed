@@ -320,3 +320,21 @@ a:hover { color: var(--accent-hover); }
     }
     .nav-toggle svg { width: 20px; height: 20px; }
 }
+
+/* ----- Callout component ------------------------------------------------- */
+.callout {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elevated);
+    padding: 1.25rem 1.5rem;
+}
+.callout__title {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+    color: var(--text);
+}
+.callout__body { color: var(--text-soft); }
+.callout__body :last-child { margin-bottom: 0; }
+.callout--warning { border-left-color: #d97706; }
+.callout--info { border-left-color: var(--accent); }

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1-beta] - 2026-06-13
+
+### Added
+- **Fluid components.** Templates under a theme's `templates/components/` folder
+  can now be called as typed, slot-aware tags via the `component` namespace,
+  e.g. `<component:callout title="…">…</component:callout>` — no `f:render`
+  required. Components use `<f:argument>` for typed inputs and `<f:slot>` for
+  child content. Powered by Fluid 5.3's component feature and registered through
+  the new `Neuedaten\Freezed\Components\ComponentCollection`. Adds the config key
+  `themeComponentsPath` (default `/templates/components/`) and
+  `Theme::getComponentRootPath()`.
+
 ## [0.3.0-beta] - 2026-06-13
 
 ### Changed
@@ -73,7 +85,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.3.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.3.1-beta...HEAD
+[0.3.1-beta]: https://github.com/neuedaten/freezed/compare/v0.3.0-beta...v0.3.1-beta
 [0.3.0-beta]: https://github.com/neuedaten/freezed/compare/v0.2.0-beta...v0.3.0-beta
 [0.2.0-beta]: https://github.com/neuedaten/freezed/compare/v0.1.1-beta...v0.2.0-beta
 [0.1.1-beta]: https://github.com/neuedaten/freezed/compare/v0.1.1-beta...v0.1.1-beta
