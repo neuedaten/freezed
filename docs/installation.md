@@ -5,7 +5,7 @@ or as a **library** added to an existing project.
 
 ## Requirements
 
-- PHP **8.1** or newer
+- PHP **8.2** or newer
 - [Composer](https://getcomposer.org/)
 - PHP extensions: `mbstring`, `dom`
 

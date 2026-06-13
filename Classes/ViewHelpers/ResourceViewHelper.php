@@ -20,7 +20,9 @@ class ResourceViewHelper extends AbstractViewHelper
         $path = $this->arguments['path'];
         $context = $this->arguments['context'];
 
-        $templateRootPaths = $this->viewHelperVariableContainer->getView()->getRenderingContext()->getTemplatePaths()->getTemplateRootPaths();
+        // Fluid 5: read the template paths straight from the rendering context
+        // (the ViewHelperVariableContainer::getView() chain is no public API).
+        $templateRootPaths = $this->renderingContext->getTemplatePaths()->getTemplateRootPaths();
 
         $configService = ConfigService::getInstance();
 

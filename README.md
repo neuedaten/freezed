@@ -8,7 +8,7 @@ Templates in, static files out. No database, no runtime, no surprises.
 
 [![Beta](https://img.shields.io/badge/status-beta-blue)](#status)
 [![License: GPL-2.0-or-later](https://img.shields.io/badge/license-GPL--2.0--or--later-green)](LICENSE)
-[![PHP ≥ 8.1](https://img.shields.io/badge/php-%E2%89%A5%208.1-777bb4)](#requirements)
+[![PHP ≥ 8.2](https://img.shields.io/badge/php-%E2%89%A5%208.2-777bb4)](#requirements)
 
 </div>
 
@@ -100,7 +100,7 @@ my-site/
 
 ## Requirements
 
-- PHP **8.1** or newer
+- PHP **8.2** or newer
 - [Composer](https://getcomposer.org/)
 - PHP extensions: `mbstring`, `dom` (both ship with most PHP builds)
 

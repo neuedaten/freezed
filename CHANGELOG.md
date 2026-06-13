@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-beta] - 2026-06-13
+
+### Changed
+- **Upgraded the template engine to `typo3fluid/fluid: ^5.3`** (from `^2.10`).
+  The rendering pipeline is unchanged; all Fluid APIs used by Freezed remain
+  compatible.
+- **Raised the minimum PHP version to `^8.2`** (required by Fluid 5 and already
+  implied by `symfony/property-access: ^7.0`). Added an explicit `ext-mbstring`
+  requirement.
+- `ResourceViewHelper` now reads template paths via `$this->renderingContext`
+  instead of the non-public `ViewHelperVariableContainer::getView()` chain.
+
 ## [0.2.0-beta] - 2026-06-13
 
 ### Added
@@ -61,7 +73,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.2.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.3.0-beta...HEAD
+[0.3.0-beta]: https://github.com/neuedaten/freezed/compare/v0.2.0-beta...v0.3.0-beta
 [0.2.0-beta]: https://github.com/neuedaten/freezed/compare/v0.1.1-beta...v0.2.0-beta
 [0.1.1-beta]: https://github.com/neuedaten/freezed/compare/v0.1.1-beta...v0.1.1-beta
 [0.1.0-beta]: https://github.com/neuedaten/freezed/releases/tag/v0.1.0-beta

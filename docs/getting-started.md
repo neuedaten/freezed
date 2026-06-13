@@ -4,7 +4,7 @@ This guide takes you from nothing to a built site in a few minutes.
 
 ## 1. Requirements
 
-- PHP **8.1+**
+- PHP **8.2+**
 - [Composer](https://getcomposer.org/)
 - PHP extensions `mbstring` and `dom`
 
