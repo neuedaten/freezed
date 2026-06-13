@@ -72,6 +72,31 @@ function freezed_resolve_project_root(string $configFileName): string
     return getcwd() ?: __DIR__;
 }
 
+/**
+ * Resolve the path used to re-invoke this CLI from spawned subprocesses
+ * (watch/run rebuilds and the dev server).
+ *
+ * When Freezed runs as a Composer dependency, the real entry point is the
+ * generated bin proxy (vendor/bin/freezed), which sets $_composer_autoload_path
+ * before including this file. This file itself is reached through a symlink, so
+ * realpath(__FILE__) points at the package's own bin — spawning that directly
+ * would bypass the proxy and the child process could not locate the autoloader
+ * ("could not locate Composer autoloader"). Prefer the proxy when present and
+ * fall back to this file for standalone clones.
+ */
+function freezed_resolve_cli_bin(): string
+{
+    $composerBinDir = $GLOBALS['_composer_bin_dir'] ?? null;
+    if (is_string($composerBinDir) && $composerBinDir !== '') {
+        $proxy = $composerBinDir . DIRECTORY_SEPARATOR . 'freezed';
+        if (file_exists($proxy)) {
+            return $proxy;
+        }
+    }
+
+    return realpath(__FILE__) ?: __FILE__;
+}
+
 /* ---------------------------------------------------------------------------
  * 3) Parse the command.
  * ------------------------------------------------------------------------- */
@@ -115,7 +140,7 @@ $configService->setValue('[buildConfig]', $buildConfig);
 // CLI context for commands that spawn subprocesses (watch, run) or the server.
 $configService->setValue('[cli]', [
     'php' => PHP_BINARY,
-    'bin' => realpath(__FILE__) ?: __FILE__,
+    'bin' => freezed_resolve_cli_bin(),
     'optionArgs' => $optionArgs,
 ]);
 

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2-beta] - 2026-06-13
+
+### Fixed
+- **Content types with a non-empty `targetDirectory` failed to write.** The build
+  now creates the target subdirectory (e.g. `public/cases/`) before writing a
+  page, instead of failing with a `file_put_contents(): No such file or
+  directory` warning.
+- **`watch`/`run` rebuilds could fail with "could not locate Composer
+  autoloader".** When Freezed runs as a Composer dependency, subprocesses spawned
+  for rebuilds were started via the real package bin (reached through a symlink),
+  bypassing the Composer bin proxy that sets up the autoloader. The CLI now
+  re-invokes itself through the proxy (`vendor/bin/freezed`) when available,
+  falling back to the package bin for standalone clones.
+
+### Added
+- **Site-wide `variables`.** `freezed.config.php` now supports a top-level
+  `variables` array, available to every content type and page. Variables are
+  merged low-to-high: site-wide → `contentTypes.<type>.variables` → the page's
+  `variables.php`. This lets shared values like `siteName`, `currentYear` or
+  `navigation` be defined once instead of per content type. Backwards compatible:
+  per-content-type `variables` keep working and override the site-wide ones.
+- **`contentTypeCollection` ViewHelper.** Collects all items of a content type
+  and exposes them to the child template under an `as` variable, for teaser
+  lists, overview pages and menus, e.g.
+  `<freezed:contentTypeCollection contentType="cases" orderBy="title" orderDirection="DESC" as="items">`.
+  Each item holds every key from its `variables.php` plus the derived
+  `folderName` and `url` keys. Sortable via `orderBy` (default `folderName`) and
+  `orderDirection` (default `ASC`).
+
 ## [0.3.1-beta] - 2026-06-13
 
 ### Added
@@ -85,7 +114,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.3.1-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.3.2-beta...HEAD
+[0.3.2-beta]: https://github.com/neuedaten/freezed/compare/v0.3.1-beta...v0.3.2-beta
 [0.3.1-beta]: https://github.com/neuedaten/freezed/compare/v0.3.0-beta...v0.3.1-beta
 [0.3.0-beta]: https://github.com/neuedaten/freezed/compare/v0.2.0-beta...v0.3.0-beta
 [0.2.0-beta]: https://github.com/neuedaten/freezed/compare/v0.1.1-beta...v0.2.0-beta

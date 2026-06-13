@@ -74,24 +74,42 @@ return [
 
 ## Default and per-page variables
 
-Site-wide defaults are defined once on the content type in `freezed.config.php`:
+Variables come from three places and are merged in this order (later wins):
+
+1. **Site-wide** — the top-level `variables` in `freezed.config.php`, shared by
+   every content type and page (e.g. `siteName`, `currentYear`, `navigation`).
+2. **Per content type** — `contentTypes.<type>.variables`, overriding the
+   site-wide defaults for that type only.
+3. **Per page** — the page's `variables.php`, overriding both.
 
 ```php
-'pages' => [
-    'targetDirectory' => '',
-    'targetFileExtension' => 'html',
-    'variables' => [
-        'siteName' => 'My Site',
-        'navigation' => [
-            ['label' => 'Home', 'url' => '/'],
-            ['label' => 'About', 'url' => '/about.html'],
+// freezed.config.php
+'variables' => [
+    'siteName' => 'My Site',
+    'navigation' => [
+        ['label' => 'Home', 'url' => '/'],
+        ['label' => 'About', 'url' => '/about.html'],
+    ],
+],
+
+'contentTypes' => [
+    'pages' => [
+        'targetDirectory' => '',
+        'targetFileExtension' => 'html',
+    ],
+    'cases' => [
+        'targetDirectory' => 'cases',
+        'targetFileExtension' => 'html',
+        'variables' => [
+            'pageTitle' => 'Case study',   // default for all cases
         ],
     ],
 ],
 ```
 
-A page's `variables.php` is merged **on top** of these defaults, so any page can
-override a default while still inheriting the rest.
+So a page's `variables.php` is merged **on top** of the content type's defaults,
+which are merged on top of the site-wide defaults — each level can override a
+value while still inheriting the rest.
 
 ## Passing data to partials
 
@@ -145,3 +163,42 @@ To add, say, a blog:
 
 > Every content type folder in `content/` **must** have a matching config entry,
 > or the build will stop with an error.
+
+## Listing items of a content type
+
+Use the `contentTypeCollection` ViewHelper to pull every item of a content type
+into a template — ideal for teaser lists, overview pages or menus that link to
+items of another type (e.g. listing all `cases` from the home page).
+
+```html
+{namespace freezed=Neuedaten\Freezed\ViewHelpers}
+
+<freezed:contentTypeCollection contentType="cases" orderBy="title" orderDirection="DESC" as="items">
+    <f:for each="{items}" as="item">
+        <a href="{item.url}">{item.title}</a>
+        <p>{item.teaser}</p>
+    </f:for>
+</freezed:contentTypeCollection>
+```
+
+Each `item` contains every key from that item's `variables.php`, plus two
+derived keys:
+
+- `folderName` — the item's directory name (e.g. `000-theasoft-typo3`).
+- `url` — the public path the item is built to (e.g. `/cases/theasoft-typo3.html`),
+  derived from the content type's `targetDirectory` and the item's output
+  filename.
+
+The `as` variable only exists inside the tag.
+
+### Arguments
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `contentType` | yes | — | The content type slug, matching a key in `freezed.config.php` and a folder under `content/`. |
+| `as` | yes | — | Name of the variable the collected items are assigned to. |
+| `orderBy` | no | `folderName` | Item key to sort by. `folderName` sorts by directory name; any other value (e.g. `title`) sorts by that key from `variables.php`. |
+| `orderDirection` | no | `ASC` | `ASC` or `DESC`. |
+
+> Sorting by `folderName` is handy when you prefix item folders to control
+> order — e.g. `000-…`, `001-…` — while keeping a clean `title` for display.

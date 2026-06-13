@@ -53,10 +53,15 @@ class ContentTypeRepository {
         $model->setTargetFileExtension($this->contentTypeConfig['targetFileExtension']);
         $model->setTargetFileName(basename($itemDirectory));
 
-        // Global content-type variables act as defaults; per-page variables.php overrides them.
-        $defaultVariables = $this->contentTypeConfig['variables'] ?? [];
+        // Variable precedence, low to high:
+        //   1. Site-wide variables (top-level "variables" in freezed.config.php),
+        //      available to every content type.
+        //   2. The content type's own "variables" (overrides the site-wide ones).
+        //   3. The item's variables.php (overrides both).
+        $globalVariables = ConfigService::getInstance()->getValue('[variables]') ?? [];
+        $contentTypeVariables = $this->contentTypeConfig['variables'] ?? [];
         $itemVariables = $this->readVariablesFileFromItemDirectory($itemDirectory);
-        $model->setVariables(array_merge($defaultVariables, $itemVariables));
+        $model->setVariables(array_merge($globalVariables, $contentTypeVariables, $itemVariables));
 
         return $model;
     }

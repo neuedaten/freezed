@@ -11,21 +11,31 @@ variables, etc.).
 
 return [
 
+    // Site-wide variables, available to every content type and page.
+    'variables' => [
+        'siteName' => 'Freezed',
+        'siteLanguage' => 'en',
+        'currentYear' => date('Y'),
+        'pageTitle' => 'Freezed site',
+        'pageDescription' => 'A site built with Freezed',
+        'navigation' => [
+            ['label' => 'Home', 'url' => '/'],
+            ['label' => 'Features', 'url' => '/features.html'],
+            ['label' => 'About', 'url' => '/about.html'],
+        ],
+    ],
+
     'contentTypes' => [
         'pages' => [
             'targetDirectory' => '',
             'targetFileExtension' => 'html',
+        ],
+        'cases' => [
+            'targetDirectory' => 'cases',
+            'targetFileExtension' => 'html',
+            // Overrides the site-wide variables for this content type only.
             'variables' => [
-                'siteName' => 'Freezed',
-                'siteLanguage' => 'en',
-                'currentYear' => date('Y'),
-                'pageTitle' => 'Freezed site',
-                'pageDescription' => 'A site built with Freezed',
-                'navigation' => [
-                    ['label' => 'Home', 'url' => '/'],
-                    ['label' => 'Features', 'url' => '/features.html'],
-                    ['label' => 'About', 'url' => '/about.html'],
-                ],
+                'pageTitle' => 'Case study',
             ],
         ],
     ],
@@ -37,6 +47,22 @@ return [
 ];
 ```
 
+## `variables` (site-wide)
+
+Top-level default variables available to **every** content type and every page.
+This is the place for things like `siteName`, `currentYear` or `navigation` that
+the whole site shares.
+
+Variables are merged in this order (later wins):
+
+1. `variables` — site-wide defaults (this key).
+2. `contentTypes.<type>.variables` — per content type.
+3. The item's `variables.php` — per page.
+
+So a single page can override a site-wide default, and a content type can set
+defaults that differ from the rest of the site, all while inheriting everything
+else.
+
 ## `contentTypes`
 
 A map of content type slug → configuration. The slug must match a folder name in
@@ -46,7 +72,7 @@ A map of content type slug → configuration. The slug must match a folder name 
 |-----|------|-------------|
 | `targetDirectory` | string | Output sub-folder under `public/` (`''` = root). |
 | `targetFileExtension` | string | Default extension for generated files (e.g. `html`). |
-| `variables` | array | Default variables for every page of this type. Overridden per page. |
+| `variables` | array | Variables for every page of this type. Override the site-wide [`variables`](#variables-site-wide); overridden per page. |
 
 ## `scripts` (build hooks)
 

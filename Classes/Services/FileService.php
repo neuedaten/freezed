@@ -57,6 +57,9 @@ class FileService
     public function writeFile(string $path, string $content): void
     {
         $path = $this->targetDirectory . '/' . $path;
+        // Ensure the target subdirectory exists (e.g. public/cases/ for a
+        // content type with a non-empty targetDirectory).
+        $this->createDirectoryIfNotExist(dirname($path));
         file_put_contents($path, $content);
         LogService::getInstance()->add('Write file: ' . $path,
             LogService::TYPES['info']);
