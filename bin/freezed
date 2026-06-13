@@ -36,7 +36,11 @@ if (!$autoloadFound) {
 
 use Neuedaten\Freezed\Commands\CompileCommand;
 use Neuedaten\Freezed\Commands\InstallCommand;
+use Neuedaten\Freezed\Commands\RunCommand;
+use Neuedaten\Freezed\Commands\ServeCommand;
+use Neuedaten\Freezed\Commands\WatchCommand;
 use Neuedaten\Freezed\Services\ConfigService;
+use Neuedaten\Freezed\Services\LogService;
 
 /* ---------------------------------------------------------------------------
  * 2) Determine the project root (where the site lives).
@@ -76,6 +80,13 @@ function freezed_resolve_project_root(string $configFileName): string
 $positionalArgs = [];
 $buildConfig = freezed_parse_build_options(array_slice($argv, 1), $positionalArgs);
 
+// Keep the raw option tokens (e.g. --enviroment:development, --log) so commands
+// that spawn a fresh build subprocess (watch, run) can forward them verbatim.
+$optionArgs = array_values(array_filter(
+    array_slice($argv, 1),
+    static fn (string $arg): bool => str_starts_with($arg, '--')
+));
+
 $task = $positionalArgs[0] ?? 'compile';
 
 if (in_array($task, ['-h', '--help', 'help'], true) || isset($buildConfig['help'])) {
@@ -101,22 +112,44 @@ $configService->setConfig($config);
 $configService->setValue('[projectRoot]', $projectRoot);
 $configService->setValue('[buildConfig]', $buildConfig);
 
+// CLI context for commands that spawn subprocesses (watch, run) or the server.
+$configService->setValue('[cli]', [
+    'php' => PHP_BINARY,
+    'bin' => realpath(__FILE__) ?: __FILE__,
+    'optionArgs' => $optionArgs,
+]);
+
+// Configure logging (verbosity + optional log file) for every command.
+LogService::getInstance()->configureFromBuildConfig($buildConfig, $projectRoot);
+
+$exitCode = 0;
+
 switch ($task) {
     case 'install':
     case 'init':
-        (new InstallCommand())->execute();
+        $exitCode = (new InstallCommand())->execute();
+        break;
+    case 'serve':
+        freezed_require_config($configFile, $configFileName, $projectRoot);
+        $exitCode = (new ServeCommand())->execute();
+        break;
+    case 'watch':
+        freezed_require_config($configFile, $configFileName, $projectRoot);
+        $exitCode = (new WatchCommand())->execute();
+        break;
+    case 'run':
+        freezed_require_config($configFile, $configFileName, $projectRoot);
+        $exitCode = (new RunCommand())->execute();
         break;
     case 'build':
     case 'compile':
     default:
-        if (!file_exists($configFile)) {
-            fwrite(STDERR, "Freezed: no $configFileName found in $projectRoot." . PHP_EOL
-                . "Run 'freezed install' first to scaffold a project." . PHP_EOL);
-            exit(1);
-        }
-        (new CompileCommand())->execute();
+        freezed_require_config($configFile, $configFileName, $projectRoot);
+        $exitCode = (new CompileCommand())->execute();
         break;
 }
+
+exit($exitCode);
 
 /* ---------------------------------------------------------------------------
  * Helpers
@@ -163,16 +196,91 @@ function freezed_parse_build_options(array $args, array &$positionalArgs): array
     return $buildConfig;
 }
 
+/**
+ * Ensure a project configuration exists before running a build-dependent
+ * command. Exits with code 1 and a hint otherwise.
+ */
+function freezed_require_config(string $configFile, string $configFileName, string $projectRoot): void
+{
+    if (!file_exists($configFile)) {
+        fwrite(STDERR, "Freezed: no $configFileName found in $projectRoot." . PHP_EOL
+            . "Run 'freezed install' first to scaffold a project." . PHP_EOL);
+        exit(1);
+    }
+}
+
+/**
+ * Resolve the Freezed version.
+ *
+ * The published composer.json carries no `version` field (Packagist derives it
+ * from git tags), so the version is determined in this order:
+ *  1. The exact git tag when running from a checkout (`git describe --tags`).
+ *  2. A `version` field in composer.json, if one is present.
+ *  3. The newest version heading in CHANGELOG.md (shipped with the package).
+ *  4. A hard-coded fallback.
+ */
 function freezed_version(): string
 {
-    $composerJson = __DIR__ . '/../composer.json';
+    $packageRoot = dirname(__DIR__);
+
+    $gitVersion = freezed_git_version($packageRoot);
+    if ($gitVersion !== null) {
+        return $gitVersion;
+    }
+
+    $composerJson = $packageRoot . '/composer.json';
     if (file_exists($composerJson)) {
         $data = json_decode((string) file_get_contents($composerJson), true);
-        if (isset($data['version'])) {
+        if (!empty($data['version'])) {
             return (string) $data['version'];
         }
     }
+
+    $changelogVersion = freezed_changelog_version($packageRoot . '/CHANGELOG.md');
+    if ($changelogVersion !== null) {
+        return $changelogVersion;
+    }
+
     return '0.1.0-beta';
+}
+
+/**
+ * Read the version from the nearest git tag, e.g. "0.1.1-beta". Returns null
+ * when there is no git checkout, git is unavailable, or no tag is reachable.
+ */
+function freezed_git_version(string $dir): ?string
+{
+    if (!is_dir($dir . '/.git') || !function_exists('exec')) {
+        return null;
+    }
+
+    $command = 'git -C ' . escapeshellarg($dir) . ' describe --tags --dirty 2>/dev/null';
+    $status = 1;
+    $output = @exec($command, $lines, $status);
+
+    if ($status !== 0 || !is_string($output) || $output === '') {
+        return null;
+    }
+
+    return ltrim($output, 'v');
+}
+
+/**
+ * Extract the most recent released version heading from a Keep-a-Changelog file,
+ * e.g. "## [0.1.1-beta] - 2026-06-12" -> "0.1.1-beta".
+ */
+function freezed_changelog_version(string $path): ?string
+{
+    if (!is_file($path)) {
+        return null;
+    }
+
+    $contents = (string) file_get_contents($path);
+    if (preg_match('/^##\s*\[(\d+\.\d+\.\d+[^\]]*)\]/m', $contents, $matches)) {
+        return $matches[1];
+    }
+
+    return null;
 }
 
 function freezed_print_help(): void
@@ -187,13 +295,23 @@ Usage:
 Commands:
   install, init     Scaffold the project (content/, themes/, static/, public/, freezed.config.php).
   build, compile    Render the site into the public/ directory. (default)
+  serve             Serve the public/ directory with PHP's built-in web server.
+  watch             Rebuild automatically whenever a source file changes.
+  run               Build, serve and watch together (development mode).
   help, --help      Show this help.
   version, --version  Show the version.
 
 Options:
   --<key>:<value>   Pass a build option. Options are exposed in templates via
                     the "build" variable, e.g. --enviroment:development is
-                    available as {build.enviroment}.
+                    available as {build.enviroment}. Options work with every
+                    command and are forwarded to rebuilds in watch/run.
+  --host:<host>     Host for serve/run (default localhost).
+  --port:<port>     Port for serve/run (default 8080).
+  --verbose         Show detailed (info-level) output on the CLI.
+  --quiet           Only show errors on the CLI.
+  --log             Write the full log to <projectRoot>/freezed.log.
+  --log=<path>      Write the full log to the given file.
 
 Environment:
   FREEZED_ROOT      Override the project root directory.

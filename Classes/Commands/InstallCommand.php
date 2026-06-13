@@ -9,7 +9,7 @@ use Neuedaten\Freezed\Services\RunScriptService;
 class InstallCommand
 {
 
-    public function execute(): void
+    public function execute(): int
     {
         RunScriptService::getInstance()->runScriptsByEvent('beforeInstall');
 
@@ -52,6 +52,8 @@ class InstallCommand
         );
 
         RunScriptService::getInstance()->runScriptsByEvent('afterInstall');
+
+        return 0;
     }
 
     private function createDirectoryIfNotExist(string $path): void
