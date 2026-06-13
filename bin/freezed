@@ -34,6 +34,7 @@ if (!$autoloadFound) {
     exit(1);
 }
 
+use Neuedaten\Freezed\Commands\CacheFlushCommand;
 use Neuedaten\Freezed\Commands\CompileCommand;
 use Neuedaten\Freezed\Commands\InstallCommand;
 use Neuedaten\Freezed\Commands\RunCommand;
@@ -165,6 +166,9 @@ switch ($task) {
     case 'run':
         freezed_require_config($configFile, $configFileName, $projectRoot);
         $exitCode = (new RunCommand())->execute();
+        break;
+    case 'cache:flush':
+        $exitCode = (new CacheFlushCommand())->execute();
         break;
     case 'build':
     case 'compile':
@@ -323,6 +327,7 @@ Commands:
   serve             Serve the public/ directory with PHP's built-in web server.
   watch             Rebuild automatically whenever a source file changes.
   run               Build, serve and watch together (development mode).
+  cache:flush       Remove cached processed images (freezed:image).
   help, --help      Show this help.
   version, --version  Show the version.
 

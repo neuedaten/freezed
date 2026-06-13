@@ -13,6 +13,10 @@ available at `./vendor/bin/freezed`.
 |---------|---------|-------------|
 | `build` | `compile` | Render the site into `public/`. **Default** when no command is given. |
 | `install` | `init` | Scaffold the project: create folders and copy the default theme, example content and config. |
+| `serve` | | Serve `public/` with PHP's built-in web server. |
+| `watch` | | Rebuild automatically when source files change. |
+| `run` | | Build, serve and watch together (development mode). |
+| `cache:flush` | | Remove cached processed images (`freezed:image`). |
 | `help` | `-h`, `--help` | Show usage information. |
 | `version` | `-V`, `--version` | Print the Freezed version. |
 
@@ -64,6 +68,17 @@ Creates `content/`, `themes/`, `static/` and `public/` if missing, and copies th
 default theme, example content and a starter `freezed.config.php` **only when the
 targets are empty**. It is safe to run on an existing project — it will not
 overwrite your files.
+
+### `freezed cache:flush`
+
+```bash
+./vendor/bin/freezed cache:flush
+```
+
+Deletes all cached processed images from `imageCacheDirectory`
+(`var/cache/images` by default). Use it after replacing a source image or
+changing image parameters that aren't part of the generated filename (e.g.
+`quality`), so the next build regenerates them.
 
 ## Project root detection
 

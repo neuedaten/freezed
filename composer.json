@@ -18,6 +18,10 @@
     "typo3fluid/fluid": "^5.3"
   },
   "require-dev": {},
+  "suggest": {
+    "ext-gd": "Required by the freezed:image ViewHelper to process images (or ext-imagick).",
+    "ext-imagick": "Alternative image backend for the freezed:image ViewHelper (preferred over GD when present)."
+  },
   "autoload": {
     "psr-4": {
       "Neuedaten\\Freezed\\": "Classes"

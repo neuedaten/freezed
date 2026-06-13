@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3-beta] - 2026-06-13
+
 ## [0.3.2-beta] - 2026-06-13
 
 ### Fixed
@@ -22,6 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   falling back to the package bin for standalone clones.
 
 ### Added
+- **`image` ViewHelper.** Resizes, converts and re-encodes images at build time,
+  e.g. `<img src="{freezed:image(src: 'assets/images/hero.jpg', context: 'theme', width: 800, fileType: 'webp', quality: 80)}">`.
+  Arguments: `src`, `context` (like `resource`), `width`/`height` (px or `auto`,
+  aspect ratio preserved), `fileType` (jpg/png/webp/gif), `quality`, `scaleUp`
+  (default `false`). Uses Imagick when available, otherwise GD; unsupported
+  source types (e.g. SVG) are passed through. Processed files are named after the
+  source folder, original name and target resolution (e.g.
+  `images-hero_800x600.webp`), cached under `var/cache/images/` and copied into
+  `public/` on each build. New config keys `imageCacheDirectory`,
+  `imagePublicDirectory`, `imageDefaultQuality`.
+- **`cache:flush` command.** `freezed cache:flush` removes all cached processed
+  images so the next build regenerates them.
 - **Site-wide `variables`.** `freezed.config.php` now supports a top-level
   `variables` array, available to every content type and page. Variables are
   merged low-to-high: site-wide → `contentTypes.<type>.variables` → the page's
@@ -114,7 +128,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.3.2-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.3.3-beta...HEAD
+[0.3.3-beta]: https://github.com/neuedaten/freezed/compare/v0.3.2-beta...v0.3.3-beta
 [0.3.2-beta]: https://github.com/neuedaten/freezed/compare/v0.3.1-beta...v0.3.2-beta
 [0.3.1-beta]: https://github.com/neuedaten/freezed/compare/v0.3.0-beta...v0.3.1-beta
 [0.3.0-beta]: https://github.com/neuedaten/freezed/compare/v0.2.0-beta...v0.3.0-beta

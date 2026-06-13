@@ -143,6 +143,48 @@ Variables can be arrays of arrays — ideal for lists, cards or navigation:
 </f:for>
 ```
 
+## Processing images
+
+The `image` ViewHelper resizes, converts and re-encodes an image at build time
+and returns the public path of the generated file — a scaled-down version of
+TYPO3's `f:image`:
+
+```html
+{namespace freezed=Neuedaten\Freezed\ViewHelpers}
+
+<img src="{freezed:image(
+    src: 'assets/images/hero.jpg',
+    context: 'theme',
+    width: 800,
+    fileType: 'webp',
+    quality: 80
+)}" alt="">
+```
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `src` | — | Path to the source image, resolved like `freezed:resource`. |
+| `context` | (template root) | `theme` resolves from the theme template roots; otherwise relative to the content template. |
+| `width` | `auto` | Target width in px, or `auto`. |
+| `height` | `auto` | Target height in px, or `auto`. |
+| `fileType` | source type | Output format: `jpg`, `png`, `webp`, `gif`. |
+| `quality` | `imageDefaultQuality` (90) | Encoding quality for lossy formats (jpeg, webp). |
+| `scaleUp` | `false` | Allow enlarging beyond the original size. |
+
+The aspect ratio is always preserved: give one of `width`/`height` to scale by
+that side, or both to fit the image inside that box. With `scaleUp` left at
+`false` the image is never enlarged past its original dimensions.
+
+Generated files are named after the source folder, original name and target
+resolution, e.g. `images-hero_800x600.webp`. They are cached in
+`var/cache/images/`, generated once and reused on later builds, then copied into
+`public/images/` on each build. Imagick is used when available, otherwise GD;
+source types that can't be decoded (e.g. SVG) are passed through unchanged.
+
+Because the filename only encodes folder, name and resolution (and format, via
+the extension), run `./vendor/bin/freezed cache:flush` after replacing a source
+image or changing parameters like `quality` so the cache is rebuilt.
+
 ## Adding a new content type
 
 To add, say, a blog:

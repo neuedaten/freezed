@@ -115,6 +115,9 @@ overridden in `freezed.config.php`:
 | `themePartialsPath` | `/templates/partials/` | Partials folder within a theme. |
 | `themeStaticPath` | `/static/` | Static folder within a theme. |
 | `mkdirPermissions` | `0777` | Permissions for created directories. |
+| `imageCacheDirectory` | `var/cache/images` | Where processed images are cached (relative to project root). |
+| `imagePublicDirectory` | `images` | Output sub-folder under `public/` for processed images. |
+| `imageDefaultQuality` | `90` | Default encoding quality for lossy image formats. |
 
 ## Environment
 
