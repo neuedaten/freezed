@@ -32,6 +32,16 @@ Renders all content through the active themes and writes static files to
 `public/`. Requires a `freezed.config.php` in the project root; if none is found
 it tells you to run `install` first.
 
+On success it prints a one-line summary:
+
+```text
+Built 3 pages (3 files, 3 resources, sitemap) in 32 ms
+```
+
+`sitemap` appears when [`sitemap.enabled`](configuration.md#sitemap) is set and
+`public/sitemap.xml` was written. Warnings (e.g. dead `CONTENT:` links or a
+missing `siteUrl`) are printed above the summary; they don't fail the build.
+
 #### Build options
 
 Pass build options as `--<key>:<value>` (or `--<key>=<value>`). Every option is

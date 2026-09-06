@@ -30,6 +30,11 @@ class ContentTypeRepository {
         }
     }
 
+    public function getTypeSlug(): string
+    {
+        return $this->typeSlug;
+    }
+
     public function findAll(): array
     {
         if (count($this->models) > 0) {

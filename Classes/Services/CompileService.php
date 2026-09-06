@@ -3,7 +3,6 @@
 namespace Neuedaten\Freezed\Services;
 
 use Neuedaten\Freezed\Domain\Model\ContentType;
-use Neuedaten\Freezed\Domain\Repository\ContentRepository;
 use Neuedaten\Freezed\Domain\Repository\ResourceRepository;
 use Neuedaten\Freezed\Exception\TemplateRenderException;
 
@@ -26,7 +25,7 @@ class CompileService
     /**
      * Compile the whole site into the public directory.
      *
-     * @return array{pages: int, files: int, resources: int, durationMs: float}
+     * @return array{pages: int, files: int, resources: int, sitemap: bool, durationMs: float}
      *         Build statistics, used by the CLI to print a summary.
      *
      * @throws TemplateRenderException When a content template fails to render.
@@ -35,9 +34,12 @@ class CompileService
     {
         $startTime = microtime(true);
 
-        $contentRepository = new ContentRepository();
-        $this->contentRepositories
-            = $contentRepository->findAllContentTypeRepositories();
+        // The content index is shared with ViewHelpers (freezed:link,
+        // contentTypeCollection) and the sitemap. Reset it so a build always
+        // starts from the current state of the content directory.
+        $contentUrlService = ContentUrlService::getInstance();
+        $contentUrlService->reset();
+        $this->contentRepositories = $contentUrlService->getRepositories();
 
         $renderService = RenderService::getInstance();
 
@@ -73,10 +75,13 @@ class CompileService
             $fileService->copyResource($resource);
         }
 
+        $sitemapWritten = SitemapService::getInstance()->write($fileService);
+
         return [
             'pages' => $pageCount,
             'files' => $fileCount,
             'resources' => count($resources),
+            'sitemap' => $sitemapWritten,
             'durationMs' => (microtime(true) - $startTime) * 1000,
         ];
     }

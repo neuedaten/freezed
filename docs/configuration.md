@@ -11,6 +11,16 @@ variables, etc.).
 
 return [
 
+    // Public base URL, without a trailing slash. Used for absolute URLs in
+    // the sitemap and by <freezed:link absolute="true">.
+    'siteUrl' => 'https://example.com',
+
+    // Write public/sitemap.xml on every build.
+    'sitemap' => [
+        'enabled' => true,
+        'lastmod' => null,   // fallback for pages without their own lastmod
+    ],
+
     // Site-wide variables, available to every content type and page.
     'variables' => [
         'siteName' => 'Freezed',
@@ -19,9 +29,9 @@ return [
         'pageTitle' => 'Freezed site',
         'pageDescription' => 'A site built with Freezed',
         'navigation' => [
-            ['label' => 'Home', 'url' => '/'],
-            ['label' => 'Features', 'url' => '/features.html'],
-            ['label' => 'About', 'url' => '/about.html'],
+            ['label' => 'Home', 'href' => 'CONTENT:pages/home'],
+            ['label' => 'Features', 'href' => 'CONTENT:pages/features'],
+            ['label' => 'About', 'href' => 'CONTENT:pages/about'],
         ],
     ],
 
@@ -74,6 +84,41 @@ A map of content type slug → configuration. The slug must match a folder name 
 | `targetFileExtension` | string | Default extension for generated files (e.g. `html`). |
 | `variables` | array | Variables for every page of this type. Override the site-wide [`variables`](#variables-site-wide); overridden per page. |
 
+## `siteUrl`
+
+The public base URL of the site, e.g. `https://example.com`, without a trailing
+slash (one is stripped if present). It is used wherever Freezed needs an
+absolute URL:
+
+- for the `<loc>` entries of the [sitemap](#sitemap);
+- by the [`link` ViewHelper](content.md#linking-between-pages) when
+  `absolute="true"` is set.
+
+Default: `''` (not set). Relative links keep working without it.
+
+## `sitemap`
+
+Generates `public/sitemap.xml` on every build, listing every item of every
+content type.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `enabled` | bool | `false` | Write the sitemap. `'sitemap' => true` is accepted as a shorthand. |
+| `lastmod` | string \| DateTimeInterface \| null | `null` | Fallback `<lastmod>` for pages that don't define their own. Any `strtotime()`-parseable value works (e.g. `'2026-01-31'`, `date('Y-m-d')`). `null` omits the element. |
+
+Per page, in `variables.php`:
+
+- `'lastmod' => '2026-01-31'` sets the page's own `<lastmod>` (same formats as
+  above). It wins over the config fallback.
+- `'sitemap' => false` excludes the page from the sitemap.
+
+URLs follow the same rule as everywhere else: a page written as `index.html`
+appears as its directory URL (`https://example.com/`, `https://example.com/cases/`).
+
+If `siteUrl` is not set, the sitemap is still written with root-relative
+`<loc>` values and the build logs a warning, because search engines require
+absolute URLs.
+
 ## `scripts` (build hooks)
 
 Shell commands to run around a build. Each runs from the project root.
@@ -110,6 +155,9 @@ overridden in `freezed.config.php`:
 | `publicPath` | `public` | Build output folder. |
 | `staticPath` | `static` | Project-level static files. |
 | `assetsDirectory` | `''` | Sub-path under `public/` for copied resources. |
+| `siteUrl` | `''` | Public base URL of the site, see [`siteUrl`](#siteurl). |
+| `sitemap.enabled` | `false` | Write `public/sitemap.xml`, see [`sitemap`](#sitemap). |
+| `sitemap.lastmod` | `null` | Fallback `<lastmod>` for the sitemap. |
 | `themeTemplatesPath` | `/templates/templates/` | Templates folder within a theme. |
 | `themeLayoutsPath` | `/templates/layouts/` | Layouts folder within a theme. |
 | `themePartialsPath` | `/templates/partials/` | Partials folder within a theme. |

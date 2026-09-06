@@ -72,6 +72,21 @@ return [
 ];
 ```
 
+### Public URLs
+
+Wherever Freezed derives a page's URL — the [`link` ViewHelper](#linking-between-pages),
+the `url` key of [`contentTypeCollection`](#listing-items-of-a-content-type) and
+the [sitemap](configuration.md#sitemap) — it uses the content type's
+`targetDirectory` plus the output filename. A file named `index.<ext>` collapses
+to its directory:
+
+| Output file | URL |
+|-------------|-----|
+| `public/about.html` | `/about.html` |
+| `public/index.html` | `/` |
+| `public/cases/first-case.html` | `/cases/first-case.html` |
+| `public/cases/index.html` | `/cases/` |
+
 ## Default and per-page variables
 
 Variables come from three places and are merged in this order (later wins):
@@ -87,8 +102,8 @@ Variables come from three places and are merged in this order (later wins):
 'variables' => [
     'siteName' => 'My Site',
     'navigation' => [
-        ['label' => 'Home', 'url' => '/'],
-        ['label' => 'About', 'url' => '/about.html'],
+        ['label' => 'Home', 'href' => 'CONTENT:pages/home'],
+        ['label' => 'About', 'href' => 'CONTENT:pages/about'],
     ],
 ],
 
@@ -142,6 +157,72 @@ Variables can be arrays of arrays — ideal for lists, cards or navigation:
     <p>{feature.text}</p>
 </f:for>
 ```
+
+## Linking between pages
+
+The `link` ViewHelper renders an `<a>` tag, much like TYPO3's `f:link`. Its
+`href` accepts three kinds of targets:
+
+```html
+{namespace freezed=Neuedaten\Freezed\ViewHelpers}
+
+<!-- a content reference: CONTENT:<contentType>/<pageFolder> -->
+<freezed:link href="CONTENT:pages/impressum" class="footer__link">Imprint</freezed:link>
+
+<!-- an absolute URL -->
+<freezed:link href="https://example.org" target="_blank">External</freezed:link>
+
+<!-- a relative or root-relative URL, passed through unchanged -->
+<freezed:link href="/downloads/brochure.pdf">Brochure</freezed:link>
+```
+
+A `CONTENT:` reference names a content type and a page folder. At build time it
+is resolved to the page's [public URL](#public-urls), so links keep working when
+you rename an output file, move a content type to another `targetDirectory` or
+turn a page into a directory index. The scaffold's navigation uses this:
+
+```php
+'navigation' => [
+    ['label' => 'Home', 'href' => 'CONTENT:pages/home'],
+    ['label' => 'About', 'href' => 'CONTENT:pages/about'],
+],
+```
+
+```html
+<f:for each="{navigation}" as="item">
+    <freezed:link class="nav__link" href="{item.href}">{item.label}</freezed:link>
+</f:for>
+```
+
+### Arguments
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `href` | yes | — | Absolute URL, relative URL or `CONTENT:<type>/<folder>` reference. |
+| `section` | no | — | Anchor appended as `#section`. |
+| `absolute` | no | `false` | Prefix root-relative URLs with [`siteUrl`](configuration.md#siteurl). Absolute URLs are never changed. |
+
+Every other attribute — `class`, `id`, `title`, `target`, `rel`, `download`,
+`data-*`, `aria-*`, … — is passed through to the tag as-is. A link with
+`target="_blank"` and no explicit `rel` gets `rel="noopener"`.
+
+### Dead links
+
+If a `CONTENT:` reference doesn't match any page at build time — the content
+type or the folder doesn't exist, or the reference is malformed — no link is
+created. Freezed renders a `<span class="dead-link">` with the same content and
+attributes instead (link-only attributes such as `target` and `rel` are dropped,
+`dead-link` is prepended to your `class`), and logs a warning naming the
+reference and the page it was first seen in. The build still succeeds.
+
+```html
+<freezed:link href="CONTENT:pages/nope" class="btn">Missing</freezed:link>
+<!-- renders as -->
+<span class="dead-link btn">Missing</span>
+```
+
+Style `.dead-link` in your theme to make broken references visible, or leave it
+unstyled so the text simply appears without a link.
 
 ## Processing images
 
@@ -229,7 +310,8 @@ derived keys:
 - `folderName` — the item's directory name (e.g. `000-theasoft-typo3`).
 - `url` — the public path the item is built to (e.g. `/cases/theasoft-typo3.html`),
   derived from the content type's `targetDirectory` and the item's output
-  filename.
+  filename. An `index.html` item yields its directory URL (`/cases/`), see
+  [Public URLs](#public-urls).
 
 The `as` variable only exists inside the tag.
 
@@ -244,3 +326,23 @@ The `as` variable only exists inside the tag.
 
 > Sorting by `folderName` is handy when you prefix item folders to control
 > order — e.g. `000-…`, `001-…` — while keeping a clean `title` for display.
+
+## Sitemap
+
+With `'sitemap' => ['enabled' => true]` in `freezed.config.php`, every build
+writes a `public/sitemap.xml` that lists all pages of all content types. Two
+optional keys in a page's `variables.php` control its entry:
+
+```php
+return [
+    'pageTitle' => 'About',
+    'lastmod' => '2026-01-31',   // <lastmod> for this page
+    // 'sitemap' => false,        // leave this page out of the sitemap
+];
+```
+
+`lastmod` accepts any `strtotime()`-parseable string or a `DateTimeInterface`.
+Pages without one fall back to `sitemap.lastmod` from the config; if that is
+unset too, the `<lastmod>` element is omitted. See
+[Configuration › sitemap](configuration.md#sitemap) for the config keys and
+`siteUrl`, which the sitemap needs for absolute URLs.

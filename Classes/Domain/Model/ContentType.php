@@ -120,6 +120,26 @@ class ContentType
         return $this->targetFileName . '.' . $this->targetFileExtension;
     }
 
+    /**
+     * Root-relative public path this item is built to, e.g. "/cases/case2.html".
+     *
+     * A target file named index.<ext> collapses to its directory URL: "/" for
+     * the root and "/cases/" for targetDirectory "cases".
+     */
+    public function getPublicPath(): string
+    {
+        $directory = trim(str_replace('\\', '/', $this->targetDirectoryName), '/');
+        $fileName = $this->getTargetFileNameWithExtension();
+
+        $base = '/' . ($directory !== '' ? $directory . '/' : '');
+
+        if (preg_match('/^index\.[a-z0-9]+$/i', $fileName)) {
+            return $base;
+        }
+
+        return $base . $fileName;
+    }
+
     public function getVariables(): array
     {
         return $this->variables;

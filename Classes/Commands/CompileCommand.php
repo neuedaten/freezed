@@ -30,13 +30,14 @@ class CompileCommand {
         }
 
         $log->success(sprintf(
-            'Built %d page%s (%d file%s, %d resource%s) in %.0f ms',
+            'Built %d page%s (%d file%s, %d resource%s%s) in %.0f ms',
             $result['pages'],
             $result['pages'] === 1 ? '' : 's',
             $result['files'],
             $result['files'] === 1 ? '' : 's',
             $result['resources'],
             $result['resources'] === 1 ? '' : 's',
+            !empty($result['sitemap']) ? ', sitemap' : '',
             $result['durationMs']
         ));
 

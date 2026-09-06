@@ -72,3 +72,5 @@ rsync -av --delete public/ user@server:/var/www/my-site/
   default — build in CI rather than committing it.
 - Add a `static/robots.txt` and `static/favicon.svg` (theme or project `static/`)
   for production-readiness.
+- Set `siteUrl` and enable the [sitemap](configuration.md#sitemap), then point
+  crawlers to it from `robots.txt`: `Sitemap: https://example.com/sitemap.xml`.

@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`link` ViewHelper.** Renders an `<a>` tag in the spirit of TYPO3's `f:link`.
+  `href` accepts an absolute URL, a relative URL or a content reference
+  `CONTENT:<contentType>/<pageFolder>` (e.g.
+  `<freezed:link href="CONTENT:pages/impressum">Imprint</freezed:link>`) that is
+  resolved to the page's public URL at build time from the content type's
+  `targetDirectory` and the page's output filename. Optional `section` (anchor)
+  and `absolute` (prefix with `siteUrl`) arguments; every other attribute
+  (`class`, `target`, `rel`, `title`, `data-*`, …) is passed through, and
+  `target="_blank"` without `rel` gets `rel="noopener"`. A reference that does
+  not match any page renders a `<span class="dead-link">` with the same content
+  and attributes instead of a link and logs a warning; the build still succeeds.
+- **Sitemap generation.** With `'sitemap' => ['enabled' => true]` in
+  `freezed.config.php`, every build writes `public/sitemap.xml` listing all
+  pages of all content types. `<lastmod>` comes from a `lastmod` key in the
+  page's `variables.php`, falling back to `sitemap.lastmod` from the config, and
+  is omitted when neither is set. Pages opt out with `'sitemap' => false`. The
+  CLI summary shows `sitemap` when the file was written.
+- **`siteUrl` config key.** Public base URL of the site, used for absolute URLs
+  in the sitemap and by `<freezed:link absolute="true">`.
+
+### Changed
+- **Page URLs for index files.** A page whose output file is `index.<ext>` now
+  has the directory URL everywhere Freezed derives one: `/` instead of
+  `/index.html`, `/cases/` instead of `/cases/index.html`. This affects the
+  `url` key of `contentTypeCollection` items.
+- **Content lookups are shared per build.** `contentTypeCollection` and `link`
+  reuse one content index instead of re-reading `content/` on every render.
+- **Scaffold navigation** uses `<freezed:link href="{item.href}">` with
+  `CONTENT:` references (`href` key instead of `url` in the `navigation` array).
+
 ## [0.3.3-beta] - 2026-06-13
 
 ## [0.3.2-beta] - 2026-06-13

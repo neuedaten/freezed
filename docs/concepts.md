@@ -20,6 +20,8 @@ Running `freezed build` performs these steps:
    `public/`.
 6. **Copy referenced resources.** Assets referenced via the `resource` ViewHelper
    are copied into `public/`.
+7. **Write the sitemap.** When `sitemap.enabled` is set, `public/sitemap.xml`
+   is generated from all pages.
 
 ## Content types
 

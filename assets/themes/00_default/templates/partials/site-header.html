@@ -10,7 +10,7 @@
         <nav class="nav" aria-label="Main navigation">
             <div class="nav__links">
                 <f:for each="{navigation}" as="item">
-                    <a class="nav__link" href="{item.url}">{item.label}</a>
+                    <freezed:link class="nav__link" href="{item.href}">{item.label}</freezed:link>
                 </f:for>
             </div>
 

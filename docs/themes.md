@@ -134,6 +134,10 @@ The `freezed` namespace is registered globally, so no `xmlns` declaration is
 required — though you may add `{namespace freezed=Neuedaten\Freezed\ViewHelpers}`
 for editor support.
 
+Links between pages should use the [`link` ViewHelper](content.md#linking-between-pages),
+which resolves `CONTENT:pages/about` references to the page's public URL and
+survives renamed output files.
+
 ## Static files
 
 Anything in a theme's `static/` folder is copied **verbatim** into `public/` on
@@ -162,5 +166,6 @@ theme; everything else still comes from the base theme.
 
 Need logic Fluid doesn't provide out of the box? Write a ViewHelper in PHP. See
 [ViewHelpers in the Fluid documentation](https://docs.typo3.org/other/typo3fluid/fluid/main/en-us/)
-and the bundled `ResourceViewHelper` in
-`packages/freezed/Classes/ViewHelpers/` as a reference.
+and the bundled ViewHelpers in `vendor/neuedaten/freezed/Classes/ViewHelpers/`
+as references: `ResourceViewHelper`, `ImageViewHelper`,
+`ContentTypeCollectionViewHelper` and the tag-based `LinkViewHelper`.

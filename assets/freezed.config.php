@@ -2,6 +2,17 @@
 
 return [
 
+    // Public base URL of the site, without a trailing slash. Needed for
+    // absolute URLs in the sitemap and for <freezed:link absolute="true">.
+    // 'siteUrl' => 'https://example.com',
+
+    // Generate public/sitemap.xml on every build. Items can opt out with
+    // 'sitemap' => false and set their own 'lastmod' in variables.php.
+    // 'sitemap' => [
+    //     'enabled' => true,
+    //     'lastmod' => null,   // fallback, e.g. '2026-01-31' or date('Y-m-d')
+    // ],
+
     // Site-wide default variables. Available to every content type and every
     // page. Override them per content type (in its "variables") or per item
     // (in the item's variables.php).
@@ -11,10 +22,12 @@ return [
         'currentYear' => date('Y'),
         'pageTitle' => 'Freezed site',
         'pageDescription' => 'A site built with Freezed',
+        // Rendered with <freezed:link href="{item.href}">. A CONTENT: reference
+        // resolves to the page's public URL at build time.
         'navigation' => [
-            ['label' => 'Home', 'url' => '/'],
-            ['label' => 'Features', 'url' => '/features.html'],
-            ['label' => 'About', 'url' => '/about.html'],
+            ['label' => 'Home', 'href' => 'CONTENT:pages/home'],
+            ['label' => 'Features', 'href' => 'CONTENT:pages/features'],
+            ['label' => 'About', 'href' => 'CONTENT:pages/about'],
         ],
     ],
 

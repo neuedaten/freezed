@@ -3,8 +3,7 @@
 namespace Neuedaten\Freezed\ViewHelpers;
 
 use Neuedaten\Freezed\Domain\Model\ContentType;
-use Neuedaten\Freezed\Domain\Repository\ContentTypeRepository;
-use Neuedaten\Freezed\Services\ConfigService;
+use Neuedaten\Freezed\Services\ContentUrlService;
 use TYPO3Fluid\Fluid\Core\Variables\ScopedVariableProvider;
 use TYPO3Fluid\Fluid\Core\Variables\StandardVariableProvider;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -15,7 +14,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  *
  * Each item holds every key from the item's variables.php, plus two derived
  * keys: "folderName" (the item directory name) and "url" (the public path the
- * item is built to). The "as" variable is only available inside the tag.
+ * item is built to, index.<ext> collapsing to the directory URL). The "as"
+ * variable is only available inside the tag.
  *
  *     <freezed:contentTypeCollection contentType="cases" orderBy="title" orderDirection="DESC" as="items">
  *         <f:for each="{items}" as="item">
@@ -73,12 +73,12 @@ class ContentTypeCollectionViewHelper extends AbstractViewHelper
      */
     private function collectItems(string $contentType): array
     {
-        $directory = $this->getContentTypeDirectory($contentType);
-        if (!is_dir($directory)) {
+        // Reuse the build-wide content index instead of re-scanning the
+        // content directory on every render.
+        $repository = ContentUrlService::getInstance()->getRepository($contentType);
+        if ($repository === null) {
             return [];
         }
-
-        $repository = new ContentTypeRepository($contentType, $directory);
 
         $items = [];
         /* @var ContentType $model */
@@ -90,35 +90,13 @@ class ContentTypeCollectionViewHelper extends AbstractViewHelper
             // override values the item already defines.
             $variables += [
                 'folderName' => $model->getTitle(),
-                'url' => $this->buildUrl($model),
+                'url' => $model->getPublicPath(),
             ];
 
             $items[] = $variables;
         }
 
         return $items;
-    }
-
-    /**
-     * Resolve the absolute path of a content type's source directory, using the
-     * same layout as ContentRepository (content/<slug>).
-     */
-    private function getContentTypeDirectory(string $contentType): string
-    {
-        $projectRoot = ConfigService::getInstance()->getValue('[projectRoot]');
-
-        return $projectRoot . '/content/' . $contentType;
-    }
-
-    /**
-     * Compute the public path an item is built to, e.g. "/cases/case2.html".
-     */
-    private function buildUrl(ContentType $model): string
-    {
-        $targetDirectory = trim($model->getTargetDirectoryName(), '/');
-        $fileName = $model->getTargetFileNameWithExtension();
-
-        return '/' . ($targetDirectory !== '' ? $targetDirectory . '/' : '') . $fileName;
     }
 
     /**

@@ -6,6 +6,17 @@ return [
     'publicPath' => 'public',
     'staticPath' => 'static',
     'assetsDirectory' => '',
+
+    // Public base URL of the site, without a trailing slash. Used for absolute
+    // URLs in the sitemap and by <freezed:link absolute="true">.
+    'siteUrl' => '',
+
+    // Sitemap (public/sitemap.xml). "lastmod" is the fallback for items whose
+    // variables.php has no "lastmod" of its own; null omits <lastmod>.
+    'sitemap' => [
+        'enabled' => false,
+        'lastmod' => null,
+    ],
     'themeTemplatesPath' => '/templates/templates/',
     'themeLayoutsPath' => '/templates/layouts/',
     'themePartialsPath' => '/templates/partials/',
