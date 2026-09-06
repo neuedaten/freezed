@@ -19,8 +19,10 @@ class ContentRepository {
 
     private function findContentTypes(): void
     {
-        $path = ConfigService::getInstance()->getValue('[projectRoot]') . '/content/';
-        $directories = glob($path . '*', GLOB_ONLYDIR);
+        $configService = ConfigService::getInstance();
+        $path = $configService->getValue('[projectRoot]') . '/'
+            . trim((string) $configService->getValue('[contentPath]'), '/') . '/';
+        $directories = glob($path . '*', GLOB_ONLYDIR) ?: [];
 
         foreach ($directories as $directory) {
             $typeSlug = basename($directory);

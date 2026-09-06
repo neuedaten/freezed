@@ -75,11 +75,17 @@ lets you ship a base theme and layer customisations on top. See [Themes](themes.
 
 ## Variables
 
-Variables flow into templates from two places, merged together:
+Variables flow into templates from three places, merged in this order (later
+wins):
 
-1. **Content-type defaults** — the `variables` array of the content type in
-   `freezed.config.php` (good for site-wide values like `siteName` or navigation).
-2. **Page variables** — the page's own `variables.php` (overrides the defaults).
+1. **Site-wide defaults** — the top-level `variables` array in
+   `freezed.config.php`, shared by every content type and page (good for values
+   like `siteName` or `navigation`).
+2. **Content-type defaults** — the `variables` array of a content type in
+   `freezed.config.php`, overriding the site-wide defaults for that type.
+3. **Page variables** — the page's own `variables.php`, overriding both.
+
+See [Content & pages](content.md#default-and-per-page-variables) for details.
 
 ## Output
 

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0-beta] - 2026-09-06
+
 ### Added
 - **`link` ViewHelper.** Renders an `<a>` tag in the spirit of TYPO3's `f:link`.
   `href` accepts an absolute URL, a relative URL or a content reference
@@ -37,6 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reuse one content index instead of re-reading `content/` on every render.
 - **Scaffold navigation** uses `<freezed:link href="{item.href}">` with
   `CONTENT:` references (`href` key instead of `url` in the `navigation` array).
+
+### Fixed
+- **`contentPath` was ignored when discovering content types.** The build always
+  read `content/` regardless of the configured `contentPath`; it now honours the
+  setting like `install`, `watch` and the resource resolver already did.
+- **Docs: variable precedence.** `docs/concepts.md` described two merge levels;
+  it now documents all three (site-wide → content type → page).
 
 ## [0.3.3-beta] - 2026-06-13
 
