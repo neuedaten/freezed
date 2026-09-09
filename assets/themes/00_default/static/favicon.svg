@@ -1,8 +1,8 @@
-<svg width="32" height="32" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
-  <rect width="26" height="26" rx="6" fill="#4f46e5"/>
-  <g stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M13 4v18"/>
-    <path d="M5.2 8.5l15.6 9"/>
-    <path d="M5.2 17.5l15.6-9"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Freezed">
+  <!-- Freezed Icon. Pixel-Schneeflocke nach NEUEDATEN CD 2026, Abschnitt 16:
+       24 x 24 Einheiten im 32er-Feld (1 Einheit = 4 px), alle Formen zwei Einheiten stark,
+       achtstrahlig, Diagonalen als 45-Grad-Treppe, keine Kurven. Lime #d1f43a auf Violett #6342f4.
+       Nur ganzzahlig skalieren: 32, 128, 256, 512, 1024 px. -->
+  <rect width="128" height="128" fill="#6342f4"/>
+  <path fill="#d1f43a" d="M28 20h8v4h-8zM52 20h8v4h-8zM68 20h8v4h-8zM92 20h8v4h-8zM28 24h8v4h-8zM52 24h8v4h-8zM68 24h8v4h-8zM92 24h8v4h-8zM20 28h16v4h-16zM60 28h8v4h-8zM92 28h16v4h-16zM20 32h16v4h-16zM60 32h8v4h-8zM92 32h16v4h-16zM36 36h8v4h-8zM60 36h8v4h-8zM84 36h8v4h-8zM36 40h8v4h-8zM60 40h8v4h-8zM84 40h8v4h-8zM44 44h8v4h-8zM60 44h8v4h-8zM76 44h8v4h-8zM44 48h8v4h-8zM60 48h8v4h-8zM76 48h8v4h-8zM20 52h8v4h-8zM52 52h24v4h-24zM100 52h8v4h-8zM20 56h8v4h-8zM52 56h24v4h-24zM100 56h8v4h-8zM28 60h72v4h-72zM28 64h72v4h-72zM20 68h8v4h-8zM52 68h24v4h-24zM100 68h8v4h-8zM20 72h8v4h-8zM52 72h24v4h-24zM100 72h8v4h-8zM44 76h8v4h-8zM60 76h8v4h-8zM76 76h8v4h-8zM44 80h8v4h-8zM60 80h8v4h-8zM76 80h8v4h-8zM36 84h8v4h-8zM60 84h8v4h-8zM84 84h8v4h-8zM36 88h8v4h-8zM60 88h8v4h-8zM84 88h8v4h-8zM20 92h16v4h-16zM60 92h8v4h-8zM92 92h16v4h-16zM20 96h16v4h-16zM60 96h8v4h-8zM92 96h16v4h-16zM28 100h8v4h-8zM52 100h8v4h-8zM68 100h8v4h-8zM92 100h8v4h-8zM28 104h8v4h-8zM52 104h8v4h-8zM68 104h8v4h-8zM92 104h8v4h-8z"/>
 </svg>
