@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0-beta] - 2026-09-09
+
 ### Added
 - **`limit` argument for `contentTypeCollection`.** Caps the number of items
   exposed to the template, applied after sorting, e.g.
