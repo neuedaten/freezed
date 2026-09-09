@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1-beta] - 2026-09-09
+
+### Changed
+- **Default theme icon.** The scaffolded `00_default` theme now ships the
+  Freezed icon (pixel snowflake, lime on violet) as `static/favicon.svg`, plus a
+  `favicon-32.png` fallback and a 512 px `apple-touch-icon.png`, all linked from
+  the page layout. The header mark is the same snowflake as an inline SVG with
+  `fill="currentColor"`, so it follows the light/dark theme; `assets/images/logo.svg`
+  contains the same mark for use in your own templates.
+- **Default theme footer.** The footer of the `00_default` theme gained a
+  centred credit line linking to [neuedaten.de](https://neuedaten.de).
+  Existing projects are not changed: `freezed install` copies the theme once,
+  so copy the new files from `assets/themes/00_default/` by hand if you want
+  them in a site that was scaffolded with an earlier release.
+
 ## [0.4.0-beta] - 2026-09-06
 
 ### Added
