@@ -15,9 +15,10 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  * Each item holds every key from the item's variables.php, plus two derived
  * keys: "folderName" (the item directory name) and "url" (the public path the
  * item is built to, index.<ext> collapsing to the directory URL). The "as"
- * variable is only available inside the tag.
+ * variable is only available inside the tag. "limit" caps the number of items
+ * after sorting (default 100, 0 = no limit).
  *
- *     <freezed:contentTypeCollection contentType="cases" orderBy="title" orderDirection="DESC" as="items">
+ *     <freezed:contentTypeCollection contentType="cases" orderBy="title" orderDirection="DESC" limit="5" as="items">
  *         <f:for each="{items}" as="item">
  *             <a href="{item.url}">{item.title}</a>
  *         </f:for>
@@ -38,6 +39,7 @@ class ContentTypeCollectionViewHelper extends AbstractViewHelper
         $this->registerArgument('as', 'string', 'Name of the variable the collected items are assigned to', true);
         $this->registerArgument('orderBy', 'string', 'Item key to sort by. The special value "folderName" sorts by the item directory name', false, 'folderName');
         $this->registerArgument('orderDirection', 'string', 'Sort direction: ASC or DESC', false, 'ASC');
+        $this->registerArgument('limit', 'int', 'Maximum number of items to expose after sorting. 0 disables the limit', false, 100);
     }
 
     public function render(): string
@@ -48,6 +50,7 @@ class ContentTypeCollectionViewHelper extends AbstractViewHelper
             $this->arguments['orderBy'],
             $this->arguments['orderDirection']
         );
+        $items = $this->limitItems($items, (int) $this->arguments['limit']);
 
         // Expose the collected items only within this tag, mirroring how
         // f:for scopes its iteration variable.
@@ -97,6 +100,21 @@ class ContentTypeCollectionViewHelper extends AbstractViewHelper
         }
 
         return $items;
+    }
+
+    /**
+     * Keep only the first $limit items. A limit of 0 (or less) keeps all items.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function limitItems(array $items, int $limit): array
+    {
+        if ($limit <= 0) {
+            return $items;
+        }
+
+        return array_slice($items, 0, $limit);
     }
 
     /**

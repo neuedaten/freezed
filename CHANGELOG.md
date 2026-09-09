@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`limit` argument for `contentTypeCollection`.** Caps the number of items
+  exposed to the template, applied after sorting, e.g.
+  `<freezed:contentTypeCollection contentType="blog" orderBy="date" orderDirection="DESC" limit="3" as="posts">`.
+  Defaults to `100`; `limit="0"` returns all items.
+
 ## [0.4.1-beta] - 2026-09-09
 
 ### Changed

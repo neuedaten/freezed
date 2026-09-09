@@ -323,9 +323,20 @@ The `as` variable only exists inside the tag.
 | `as` | yes | — | Name of the variable the collected items are assigned to. |
 | `orderBy` | no | `folderName` | Item key to sort by. `folderName` sorts by directory name; any other value (e.g. `title`) sorts by that key from `variables.php`. |
 | `orderDirection` | no | `ASC` | `ASC` or `DESC`. |
+| `limit` | no | `100` | Maximum number of items, applied after sorting. `0` returns all items. |
 
 > Sorting by `folderName` is handy when you prefix item folders to control
 > order — e.g. `000-…`, `001-…` — while keeping a clean `title` for display.
+
+Combine `orderBy`, `orderDirection` and `limit` for "latest N" teasers:
+
+```html
+<freezed:contentTypeCollection contentType="blog" orderBy="date" orderDirection="DESC" limit="3" as="posts">
+    <f:for each="{posts}" as="post">
+        <freezed:link href="{post.url}">{post.title}</freezed:link>
+    </f:for>
+</freezed:contentTypeCollection>
+```
 
 ## Sitemap
 
