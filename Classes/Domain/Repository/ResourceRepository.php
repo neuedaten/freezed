@@ -4,6 +4,7 @@ namespace Neuedaten\Freezed\Domain\Repository;
 
 
 use Neuedaten\Freezed\Domain\Model\Resource;
+use Neuedaten\Freezed\Services\AssetVersionService;
 use Neuedaten\Freezed\Services\ConfigService;
 use Neuedaten\Freezed\Services\FileService;
 use Neuedaten\Freezed\Services\LogService;
@@ -26,6 +27,12 @@ class ResourceRepository
         return static::$instance;
     }
 
+    /**
+     * Register a resource for copying and compute its public URL.
+     *
+     * Resources are memoised by source path, so a file referenced from many
+     * pages is hashed exactly once per build and always yields the same URL.
+     */
     public function createModelFromPath(string $path): Resource
     {
         if ($resource = $this->getExistingResource($path)) {
@@ -34,20 +41,24 @@ class ResourceRepository
 
         $resource = new Resource();
 
-        $uniqueIdentifier = $this->generateUniqueIdentifier($path);
-
         $resource->setSourcePath($path);
         $resource->setType($this->extractFileExtension($path));
-        $resource->setConvertedName($this->generateUniqueFilename($path,
-            $uniqueIdentifier));
 
+        $version = AssetVersionService::isEnabled()
+            ? AssetVersionService::hash($path)
+            : '';
+        $resource->setIdentifier($version);
+
+        // The file keeps its name on disk; only the URL carries the version.
         $targetPath = FileService::virtualRealpath(FileService::getPathWithoutThemeOrContentDirectory($path));
 
         $resource->setTargetPath($targetPath);
 
-        $resource->setPublicPath(FileService::virtualRealpath(ConfigService::getInstance()
+        $publicPath = FileService::virtualRealpath(ConfigService::getInstance()
                 ->getValue('[assetsDirectory]')
-            . $resource->getTargetPath()));
+            . $resource->getTargetPath());
+
+        $resource->setPublicPath(AssetVersionService::applyToUrl($publicPath, $version));
 
         $this->resources[] = $resource;
         $this->resourcesByPath[$path] = $resource;
@@ -87,28 +98,6 @@ class ResourceRepository
     private function extractFileExtension(string $path): string
     {
         return pathinfo($path, PATHINFO_EXTENSION);
-    }
-
-    private function generateUniqueFilename(
-        string $path,
-        $uniqueIdentifier
-    ): string {
-        $extension = pathinfo($path, PATHINFO_EXTENSION);
-        return $uniqueIdentifier . '.' . $extension;
-    }
-
-    private function generateUniqueIdentifier($path): string
-    {
-        $filename = pathinfo($path, PATHINFO_FILENAME);
-        $filename = $this->convertFilename($filename);
-        $uniqueId = uniqid();
-        return $filename . '-' . $uniqueId;
-    }
-
-    private function convertFilename($filename): string
-    {
-        return preg_replace('/\s+/', '-',
-            preg_replace('/[^a-z0-9\s]/', '', strtolower($filename)));
     }
 
     public function findAll(): array

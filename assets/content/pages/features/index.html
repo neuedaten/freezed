@@ -38,6 +38,11 @@
             </p>
             <pre><code>&lt;link rel="stylesheet"
   href="&#123;freezed:resource(path: 'assets/css/main.css', context: 'theme')&#125;"&gt;</code></pre>
+            <p>
+                The returned URL carries a short hash of the file's content
+                (<code>main.css?v=a1b2c3d4</code>), so browsers fetch the new
+                file after a deploy instead of serving the old one from cache.
+            </p>
         </div>
     </section>
 

@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Asset versioning (cache busting).** URLs returned by `freezed:resource` now
+  carry a short hash of the file's content, e.g.
+  `/00_default/assets/css/main.css?v=a1b2c3d4`, so browsers pick up a changed
+  asset after a deployment instead of serving the old one from cache. The file
+  keeps its name on disk, so relative `url()` references inside CSS keep
+  working. The version is deliberately a content hash and not a modification
+  time: `git clone` resets mtimes, so building in CI would otherwise invalidate
+  every asset on every deployment. Configurable via `assetVersioning`
+  (default `true`).
+- **`context: 'static'` for `freezed:resource`.** Resolves a file from the
+  project's and the themes' `static/` folders and returns its public URL, e.g.
+  `{freezed:resource(path: 'favicon.svg', context: 'static')}`, following the
+  same override order the files are copied in. Static URLs stay unversioned
+  unless `assetVersioningStatic` is enabled, because `static/` exists to deliver
+  stable paths. The `00_default` theme now links its favicons this way instead
+  of hardcoding them.
+
+### Fixed
+- **`freezed:image` served stale images from its cache.** The generated filename
+  encoded only folder, name and target resolution, so replacing a source image
+  or changing `quality` silently reused the old file — despite the
+  documentation claiming otherwise. Source content and quality are now part of
+  the name (`images-hero_800x600_q80_a1b2c3d4.webp`), which fixes the cache key
+  and makes image URLs cache-busting at the same time. Passed-through sources
+  (e.g. SVG) are covered too. Superseded files stay in `var/cache/images/`
+  without being published; run `./vendor/bin/freezed cache:flush` once after
+  upgrading to clear them out.
+- **`freezed:resource` failed late on a missing file.** A path that could not be
+  resolved was registered as a resource with an empty source path and only
+  failed when the build tried to copy it. It now logs a warning and returns an
+  empty string.
+- **Deprecation warnings while rendering `freezed:image` on PHP 8.5.** The GD
+  path freed the source and target images with `imagedestroy()`, which PHP 8.5
+  deprecates because it has had no effect since PHP 8.0 — GD images are
+  ordinary objects since then and the garbage collector releases them. The two
+  calls are gone, so builds stay free of `PHP Deprecated` output.
+
+### Removed
+- Unused `uniqid()`-based filename generation in `ResourceRepository` and the
+  dead `convertedName`, `mimeType`, `originalName` and `config` fields on the
+  `Resource` model. The generated name was never read; being time-based, wiring
+  it up would have broken build reproducibility.
+
 ## [0.5.0-beta] - 2026-09-09
 
 ### Added

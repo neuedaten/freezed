@@ -256,15 +256,27 @@ The aspect ratio is always preserved: give one of `width`/`height` to scale by
 that side, or both to fit the image inside that box. With `scaleUp` left at
 `false` the image is never enlarged past its original dimensions.
 
-Generated files are named after the source folder, original name and target
-resolution, e.g. `images-hero_800x600.webp`. They are cached in
-`var/cache/images/`, generated once and reused on later builds, then copied into
-`public/images/` on each build. Imagick is used when available, otherwise GD;
-source types that can't be decoded (e.g. SVG) are passed through unchanged.
+Generated files are named after the source folder, original name, target
+resolution, quality and a short hash of the source content, e.g.
+`images-hero_800x600_q80_a1b2c3d4.webp`. Everything that affects the result is
+part of the name (`scaleUp` needs no part of its own, because it can only change
+the output by changing the dimensions), so replacing the source image or
+changing `quality` produces a new file rather than reusing the old one — and the
+new URL busts the browser cache at the same time.
 
-Because the filename only encodes folder, name and resolution (and format, via
-the extension), run `./vendor/bin/freezed cache:flush` after replacing a source
-image or changing parameters like `quality` so the cache is rebuilt.
+Files are cached in `var/cache/images/`, generated once, reused on later builds
+and copied into `public/images/` on each build. Imagick is used when available,
+otherwise GD; source types that can't be decoded (e.g. SVG) are passed through
+unchanged — they get the content hash too.
+
+Because the filename is the cache key, image URLs are always versioned,
+independently of [`assetVersioning`](configuration.md#assetversioning). That
+also makes `public/images/` safe for a long `Cache-Control: immutable`, see
+[Caching](deployment.md#caching).
+
+Superseded files stay in `var/cache/images/`; they are never published, they
+just take up disk space. Run `./vendor/bin/freezed cache:flush` to clear them
+out.
 
 ## Adding a new content type
 

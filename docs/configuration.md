@@ -96,6 +96,59 @@ absolute URL:
 
 Default: `''` (not set). Relative links keep working without it.
 
+## `assetVersioning`
+
+Asset URLs returned by the [`resource` ViewHelper](themes.md#assets-and-the-resource-viewhelper)
+carry a short hash of the file's content, so a browser fetches the new file
+after a deployment instead of serving the old one from its cache:
+
+```html
+<link rel="stylesheet" href="/00_default/assets/css/main.css?v=a1b2c3d4">
+```
+
+```php
+'assetVersioning' => true,   // default
+```
+
+Set it to `false` to emit plain URLs.
+
+The version is a **content hash, not a modification time**. That matters as soon
+as you build in CI: `git clone` sets the mtime of every file to the checkout
+time, so an mtime-based version would invalidate every asset on every
+deployment, even when nothing changed. A content hash moves only when the file
+moves, which also makes builds reproducible.
+
+The file keeps its name on disk — only the URL gains a `?v=` parameter. Relative
+`url()` references inside your CSS therefore keep working; Freezed has no
+bundler that could rewrite them.
+
+See [Caching](deployment.md#caching) for the `Cache-Control` headers that go
+with this.
+
+### `assetVersioningStatic`
+
+```php
+'assetVersioningStatic' => false,   // default
+```
+
+Files from `static/` are **not** versioned by default, because `static/` exists
+to deliver stable URLs (`robots.txt`, `.well-known/`, domain verification
+files). Enable this to version them too — worthwhile for favicons, which
+browsers cache aggressively and for a long time:
+
+```html
+<link rel="icon" href="{freezed:resource(path: 'favicon.svg', context: 'static')}" type="image/svg+xml">
+```
+
+Only takes effect while `assetVersioning` is enabled.
+
+### Processed images
+
+`freezed:image` is not affected by either setting. It writes the content hash
+into the generated filename (`images-hero_800x600_q80_a1b2c3d4.webp`), where it
+serves as the cache key as well — see
+[Processing images](content.md#processing-images).
+
 ## `sitemap`
 
 Generates `public/sitemap.xml` on every build, listing every item of every
@@ -155,6 +208,8 @@ overridden in `freezed.config.php`:
 | `publicPath` | `public` | Build output folder. |
 | `staticPath` | `static` | Project-level static files. |
 | `assetsDirectory` | `''` | Sub-path under `public/` for copied resources. |
+| `assetVersioning` | `true` | Append a content hash to asset URLs, see [`assetVersioning`](#assetversioning). |
+| `assetVersioningStatic` | `false` | Version files from `static/` too, see [`assetVersioningStatic`](#assetversioningstatic). |
 | `siteUrl` | `''` | Public base URL of the site, see [`siteUrl`](#siteurl). |
 | `sitemap.enabled` | `false` | Write `public/sitemap.xml`, see [`sitemap`](#sitemap). |
 | `sitemap.lastmod` | `null` | Fallback `<lastmod>` for the sitemap. |

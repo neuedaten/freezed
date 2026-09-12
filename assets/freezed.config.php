@@ -13,6 +13,16 @@ return [
     //     'lastmod' => null,   // fallback, e.g. '2026-01-31' or date('Y-m-d')
     // ],
 
+    // Asset URLs from freezed:resource carry a hash of the file's content
+    // (main.css?v=a1b2c3d4) so browsers pick up changed assets. Set to false
+    // for plain URLs.
+    // 'assetVersioning' => false,
+
+    // Version files from static/ too, referenced via
+    // {freezed:resource(path: 'favicon.svg', context: 'static')}. Off by
+    // default, because static/ is meant to deliver stable URLs.
+    // 'assetVersioningStatic' => true,
+
     // Site-wide default variables. Available to every content type and every
     // page. Override them per content type (in its "variables") or per item
     // (in the item's variables.php).

@@ -67,10 +67,6 @@ class FileService
 
     public function copyResource(Resource $resource): void
     {
-//        $targetPath = self::virtualRealpath($this->targetDirectory . '/'
-//            . ConfigService::getInstance()
-//                ->getValue('[compile][assetsTargetDirectory]') . '/' . $resource->getConvertedName());
-
         $targetPath = self::virtualRealpath(implode(DIRECTORY_SEPARATOR, [
             $this->targetDirectory,
             ConfigService::getInstance()

@@ -86,9 +86,13 @@ overwrite your files.
 ```
 
 Deletes all cached processed images from `imageCacheDirectory`
-(`var/cache/images` by default). Use it after replacing a source image or
-changing image parameters that aren't part of the generated filename (e.g.
-`quality`), so the next build regenerates them.
+(`var/cache/images` by default).
+
+You don't need it to pick up changes: every parameter that affects a processed
+image — including the source content and `quality` — is part of the generated
+filename, so a change always produces a new file. Use it to clear out the
+superseded files that accumulate there, for instance after upgrading Freezed or
+after a round of image tweaking.
 
 ## Project root detection
 

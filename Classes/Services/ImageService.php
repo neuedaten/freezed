@@ -6,10 +6,13 @@ namespace Neuedaten\Freezed\Services;
  * Processes images for the freezed:image ViewHelper: resize, change format and
  * re-encode with a given quality.
  *
- * Processed files are cached on disk (keyed by source + modification time +
- * processing parameters) so they are only generated once and reused on
- * subsequent builds. The cache lives outside public/ because public/ is wiped
- * on every build; the cached file is copied into public/ each time.
+ * Processed files are cached on disk. The cache key is part of the generated
+ * filename and covers the source content, the target dimensions and the
+ * encoding quality, so a changed source image or a changed quality produces a
+ * new file instead of silently reusing the old one. That same hash doubles as
+ * the cache buster in the public URL. The cache lives outside public/ because
+ * public/ is wiped on every build; the cached file is copied into public/ each
+ * time.
  *
  * Imagick is used when available, otherwise GD. Source types that cannot be
  * decoded (e.g. SVG) are passed through unchanged.
@@ -79,7 +82,7 @@ class ImageService
         );
 
         $extension = $this->extensionForType($outputType);
-        $fileName = $this->buildFileName($sourcePath, $extension, $targetWidth, $targetHeight);
+        $fileName = $this->buildFileName($sourcePath, $extension, $targetWidth, $targetHeight, $quality);
 
         $cacheFile = $this->cacheDirectory() . '/' . $fileName;
         if (!is_file($cacheFile)) {
@@ -97,6 +100,7 @@ class ImageService
     private function passthrough(string $sourcePath): string
     {
         $fileName = $this->nameSlug($sourcePath)
+            . '_' . AssetVersionService::hash($sourcePath)
             . '.' . strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
 
         $cacheFile = $this->cacheDirectory() . '/' . $fileName;
@@ -274,26 +278,30 @@ class ImageService
                 imagegif($target, $targetPath);
                 break;
         }
-
-        imagedestroy($source);
-        imagedestroy($target);
     }
 
     /**
-     * Build the output filename from the source folder, original name and target
-     * resolution, e.g. "images-hero_800x600.webp". The folder name keeps files
-     * from different directories with the same basename apart. The format is
-     * encoded in the extension; other parameters (quality, scaleUp) and source
-     * changes are not part of the name, so run `cache:flush` after changing those.
+     * Build the output filename from the source folder, original name, target
+     * resolution, quality and a short hash of the source content, e.g.
+     * "images-hero_800x600_q80_a1b2c3d4.webp". The folder name keeps files from
+     * different directories with the same basename apart, the format is encoded
+     * in the extension, and scaleUp needs no part of its own because it can only
+     * change the output by changing the dimensions.
+     *
+     * Everything that affects the result is therefore part of the name: the file
+     * is both a correct cache key and a cache-busting public URL.
      */
     private function buildFileName(
         string $sourcePath,
         string $extension,
         int $targetWidth,
-        int $targetHeight
+        int $targetHeight,
+        int $quality
     ): string {
         return $this->nameSlug($sourcePath)
             . '_' . $targetWidth . 'x' . $targetHeight
+            . '_q' . $quality
+            . '_' . AssetVersionService::hash($sourcePath)
             . '.' . $extension;
     }
 

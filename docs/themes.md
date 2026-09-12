@@ -129,6 +129,14 @@ copies the file into the build and returns its public URL:
 - `path` is relative to the theme root.
 - `context: 'theme'` resolves the asset across the theme stack (so a later theme
   can override an earlier theme's file).
+- `context: 'static'` resolves the file from the `static/` folders instead, see
+  [Static files](#static-files).
+
+The returned URL carries a short hash of the file's content
+(`main.css?v=a1b2c3d4`) so browsers pick up a changed asset after a deployment.
+The name on disk is unchanged. See
+[`assetVersioning`](configuration.md#assetversioning) to turn it off, and
+[Caching](deployment.md#caching) for the matching `Cache-Control` headers.
 
 The `freezed` namespace is registered globally, so no `xmlns` declaration is
 required — though you may add `{namespace freezed=Neuedaten\Freezed\ViewHelpers}`
@@ -141,8 +149,26 @@ survives renamed output files.
 ## Static files
 
 Anything in a theme's `static/` folder is copied **verbatim** into `public/` on
-every build. Use it for files that need a fixed path, such as `favicon.svg`,
-`robots.txt` or fonts.
+every build, keeping its relative path. Use it for files that need a fixed path,
+such as `favicon.svg`, `robots.txt` or `.well-known/` files.
+
+The project's own `static/` folder is copied first, then each theme's in theme
+order, and every copy overwrites the previous one. So for static files a
+**theme wins over the project**, and a later theme wins over an earlier one —
+the reverse of what the folder order might suggest.
+
+You can reference a static file through the `resource` ViewHelper instead of
+hardcoding its path:
+
+```html
+<link rel="icon" href="{freezed:resource(path: 'favicon.svg', context: 'static')}" type="image/svg+xml">
+```
+
+`path` is relative to the `static/` root. The file is still copied by the normal
+static-file pass — the ViewHelper only resolves the URL, following the same
+override order. Static URLs stay unversioned unless you enable
+[`assetVersioningStatic`](configuration.md#assetversioningstatic); that is
+worth doing for favicons, which browsers cache aggressively.
 
 ## Stacking themes
 

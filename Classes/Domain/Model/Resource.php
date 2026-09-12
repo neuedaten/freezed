@@ -12,15 +12,8 @@ class Resource
 
     protected string $type = '';
 
-    protected string $mimeType = '';
-
-    protected string $originalName = '';
-
-    protected string $convertedName = '';
-
+    /** Short content hash of the source file, used for cache busting. */
     protected string $identifier = '';
-
-    protected array $config = [];
 
     protected string $jsModuleName = '';
 
@@ -64,26 +57,6 @@ class Resource
         $this->identifier = $identifier;
     }
 
-    public function getConfig(): array
-    {
-        return $this->config;
-    }
-
-    public function setConfig(array $config): void
-    {
-        $this->config = $config;
-    }
-
-    public function getMimeType(): string
-    {
-        return $this->mimeType;
-    }
-
-    public function setMimeType(string $mimeType): void
-    {
-        $this->mimeType = $mimeType;
-    }
-
     public function getPublicPath(): string
     {
         return $this->publicPath;
@@ -92,26 +65,6 @@ class Resource
     public function setPublicPath(string $publicPath): void
     {
         $this->publicPath = $publicPath;
-    }
-
-    public function getOriginalName(): string
-    {
-        return $this->originalName;
-    }
-
-    public function setOriginalName(string $originalName): void
-    {
-        $this->originalName = $originalName;
-    }
-
-    public function getConvertedName(): string
-    {
-        return $this->convertedName;
-    }
-
-    public function setConvertedName(string $convertedName): void
-    {
-        $this->convertedName = $convertedName;
     }
 
     public function getJsModuleName(): string

@@ -7,6 +7,19 @@ return [
     'staticPath' => 'static',
     'assetsDirectory' => '',
 
+    // Cache busting for asset URLs from freezed:resource. Appends a short hash
+    // of the file's content (main.css?v=a1b2c3d4), which changes only when the
+    // file changes -- unlike the modification time, which a fresh git clone in
+    // CI resets on every deployment. Set to false to emit plain URLs.
+    'assetVersioning' => true,
+
+    // Also version files from static/, reachable via
+    // {freezed:resource(path: 'favicon.svg', context: 'static')}. Off by
+    // default, because static/ exists to deliver stable URLs (robots.txt,
+    // .well-known/, domain verification files). Only takes effect while
+    // assetVersioning is enabled.
+    'assetVersioningStatic' => false,
+
     // Public base URL of the site, without a trailing slash. Used for absolute
     // URLs in the sitemap and by <freezed:link absolute="true">.
     'siteUrl' => '',
