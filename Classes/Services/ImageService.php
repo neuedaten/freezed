@@ -14,6 +14,11 @@ namespace Neuedaten\Freezed\Services;
  * public/ is wiped on every build; the cached file is copied into public/ each
  * time.
  *
+ * Generated files mirror the source's location below content/ or themes/
+ * (public/images/pages/home/assets/hero_800x600_q80_a1b2c3d4.webp for
+ * content/pages/home/assets/hero.jpg), the same way freezed:resource does, so
+ * a same-named image in two content folders never collides with another.
+ *
  * Imagick is used when available, otherwise GD. Source types that cannot be
  * decoded (e.g. SVG) are passed through unchanged.
  */
@@ -99,7 +104,7 @@ class ImageService
      */
     private function passthrough(string $sourcePath): string
     {
-        $fileName = $this->nameSlug($sourcePath)
+        $fileName = $this->relativeName($sourcePath)
             . '_' . AssetVersionService::hash($sourcePath)
             . '.' . strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
 
@@ -281,12 +286,13 @@ class ImageService
     }
 
     /**
-     * Build the output filename from the source folder, original name, target
-     * resolution, quality and a short hash of the source content, e.g.
-     * "images-hero_800x600_q80_a1b2c3d4.webp". The folder name keeps files from
-     * different directories with the same basename apart, the format is encoded
-     * in the extension, and scaleUp needs no part of its own because it can only
-     * change the output by changing the dimensions.
+     * Build the output path (relative to the image output directory) from the
+     * source's location, original name, target resolution, quality and a short
+     * hash of the source content, e.g.
+     * "pages/home/assets/hero_800x600_q80_a1b2c3d4.webp". The path keeps
+     * files from different content folders with the same basename apart, the
+     * format is encoded in the extension, and scaleUp needs no part of its own
+     * because it can only change the output by changing the dimensions.
      *
      * Everything that affects the result is therefore part of the name: the file
      * is both a correct cache key and a cache-busting public URL.
@@ -298,7 +304,7 @@ class ImageService
         int $targetHeight,
         int $quality
     ): string {
-        return $this->nameSlug($sourcePath)
+        return $this->relativeName($sourcePath)
             . '_' . $targetWidth . 'x' . $targetHeight
             . '_q' . $quality
             . '_' . AssetVersionService::hash($sourcePath)
@@ -306,15 +312,30 @@ class ImageService
     }
 
     /**
-     * Slug combining the source's parent folder and filename, e.g.
-     * "images-hero" for ".../assets/images/hero.jpg".
+     * Source path relative to its content or theme root, without extension and
+     * with every segment slugified, e.g. "pages/home/assets/hero" for
+     * "<project>/content/pages/home/assets/hero.jpg" or
+     * "00_default/assets/images/hero" for a theme image. A source outside both
+     * roots falls back to its parent folder and name.
      */
-    private function nameSlug(string $sourcePath): string
+    private function relativeName(string $sourcePath): string
     {
-        $folder = $this->slug(basename(dirname($sourcePath)));
-        $name = $this->slug(pathinfo($sourcePath, PATHINFO_FILENAME));
+        $relative = FileService::getPathWithoutThemeOrContentDirectory($sourcePath);
 
-        return ($folder !== '' ? $folder . '-' : '') . $name;
+        if ($relative === $sourcePath) {
+            $relative = basename(dirname($sourcePath)) . '/' . basename($sourcePath);
+        }
+
+        $relative = str_replace('\\', '/', $relative);
+        $segments = explode('/', dirname($relative));
+        $segments[] = pathinfo($relative, PATHINFO_FILENAME);
+
+        $segments = array_filter(
+            array_map(fn (string $segment): string => $this->slug($segment), $segments),
+            fn (string $segment): bool => $segment !== '' && $segment !== '.'
+        );
+
+        return implode('/', $segments);
     }
 
     /**
@@ -327,9 +348,21 @@ class ImageService
             return 0;
         }
 
+        return $this->clearDirectory($directory);
+    }
+
+    /**
+     * Recursively delete the files below a directory (the cache mirrors the
+     * source folder structure) and remove the emptied sub-directories.
+     */
+    private function clearDirectory(string $directory): int
+    {
         $deleted = 0;
-        foreach ((array) glob($directory . '/*') as $file) {
-            if (is_file($file) && unlink($file)) {
+        foreach ((array) glob($directory . '/*') as $entry) {
+            if (is_dir($entry)) {
+                $deleted += $this->clearDirectory($entry);
+                @rmdir($entry);
+            } elseif (is_file($entry) && unlink($entry)) {
                 $deleted++;
             }
         }
@@ -352,10 +385,14 @@ class ImageService
         }
     }
 
-    /** Slugify a filename the same way resources do. */
-    private function slug(string $filename): string
+    /**
+     * Slugify one path segment: lower-case, whitespace to "-", anything but
+     * a-z, 0-9, "-" and "_" dropped. Dashes and underscores are kept so that
+     * folders like "news-1" and "news1" stay distinct.
+     */
+    private function slug(string $segment): string
     {
-        return preg_replace('/\s+/', '-', preg_replace('/[^a-z0-9\s]/', '', strtolower($filename)));
+        return preg_replace('/\s+/', '-', preg_replace('/[^a-z0-9\s_-]/', '', strtolower($segment)));
     }
 
     /** Normalise a user-supplied file type to an internal type name, or null. */

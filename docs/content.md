@@ -256,18 +256,27 @@ The aspect ratio is always preserved: give one of `width`/`height` to scale by
 that side, or both to fit the image inside that box. With `scaleUp` left at
 `false` the image is never enlarged past its original dimensions.
 
-Generated files are named after the source folder, original name, target
-resolution, quality and a short hash of the source content, e.g.
-`images-hero_800x600_q80_a1b2c3d4.webp`. Everything that affects the result is
-part of the name (`scaleUp` needs no part of its own, because it can only change
-the output by changing the dimensions), so replacing the source image or
-changing `quality` produces a new file rather than reusing the old one — and the
-new URL busts the browser cache at the same time.
+Generated files mirror the source's path below `content/` or `themes/` — the
+same sub-folders `freezed:resource` uses — followed by the original name, target
+resolution, quality and a short hash of the source content:
 
-Files are cached in `var/cache/images/`, generated once, reused on later builds
-and copied into `public/images/` on each build. Imagick is used when available,
-otherwise GD; source types that can't be decoded (e.g. SVG) are passed through
-unchanged — they get the content hash too.
+| Source | Output |
+|--------|--------|
+| `content/pages/home/assets/hero.jpg` | `public/images/pages/home/assets/hero_800x600_q80_a1b2c3d4.webp` |
+| `content/news/launch/assets/hero.jpg` | `public/images/news/launch/assets/hero_800x600_q80_e5f6a7b8.webp` |
+| `themes/00_default/assets/images/hero.jpg` | `public/images/00_default/assets/images/hero_800x600_q80_c9d0e1f2.webp` |
+
+A `hero.jpg` in one content folder therefore never collides with a `hero.jpg`
+in another. Everything that affects the result is part of the name (`scaleUp`
+needs no part of its own, because it can only change the output by changing the
+dimensions), so replacing the source image or changing `quality` produces a new
+file rather than reusing the old one — and the new URL busts the browser cache
+at the same time.
+
+Files are cached in `var/cache/images/` (in the same sub-folder structure),
+generated once, reused on later builds and copied into `public/images/` on each
+build. Imagick is used when available, otherwise GD; source types that can't be
+decoded (e.g. SVG) are passed through unchanged — they get the content hash too.
 
 Because the filename is the cache key, image URLs are always versioned,
 independently of [`assetVersioning`](configuration.md#assetversioning). That

@@ -145,9 +145,9 @@ Only takes effect while `assetVersioning` is enabled.
 ### Processed images
 
 `freezed:image` is not affected by either setting. It writes the content hash
-into the generated filename (`images-hero_800x600_q80_a1b2c3d4.webp`), where it
-serves as the cache key as well — see
-[Processing images](content.md#processing-images).
+into the generated filename
+(`images/pages/home/assets/hero_800x600_q80_a1b2c3d4.webp`), where it serves as
+the cache key as well — see [Processing images](content.md#processing-images).
 
 ## `sitemap`
 

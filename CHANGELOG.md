@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0-beta] - 2026-09-13
+
+### Changed
+- **Processed images are output in sub-folders that mirror the source.**
+  `freezed:image` now writes to `images/<path below content/ or themes/>/`,
+  e.g. `images/pages/home/assets/hero_800x600_q90_a1b2c3d4.webp` for
+  `content/pages/home/assets/hero.jpg` and
+  `images/00_default/assets/images/hero_…webp` for a theme image — the same
+  sub-folders `freezed:resource` already uses. The image cache in
+  `var/cache/images/` follows the same structure and `cache:flush` clears it
+  recursively. Dashes and underscores in folder and file names are kept in the
+  slug instead of being dropped, so `news-1` and `news1` stay distinct.
+  Image URLs change with this release; run `./vendor/bin/freezed cache:flush`
+  once after upgrading to drop the old flat cache files.
+
+### Fixed
+- **`freezed:image` could mix up same-named images from different content
+  folders.** Generated files were named after the immediate parent folder and
+  the file name only, so `content/pages/home/assets/hero.jpg` and
+  `content/news/launch/assets/hero.jpg` both became
+  `images/assets-hero_800x600.webp` and overwrote each other in `public/` and
+  in the image cache — the first one built won for both pages. Since
+  0.6.0-beta the content hash in the name told them apart, but only by
+  coincidence of differing content. The sub-folder output above fixes this
+  structurally. `freezed:resource` was never affected: copied files have
+  always landed under `public/<contentType>/<folder>/…`.
+
 ## [0.6.0-beta] - 2026-09-12
 
 ### Added
@@ -237,7 +264,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.6.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.7.0-beta...HEAD
+[0.7.0-beta]: https://github.com/neuedaten/freezed/compare/v0.6.0-beta...v0.7.0-beta
 [0.6.0-beta]: https://github.com/neuedaten/freezed/compare/v0.5.0-beta...v0.6.0-beta
 [0.5.0-beta]: https://github.com/neuedaten/freezed/compare/v0.4.1-beta...v0.5.0-beta
 [0.4.1-beta]: https://github.com/neuedaten/freezed/compare/v0.4.0-beta...v0.4.1-beta
