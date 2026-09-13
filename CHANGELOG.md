@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0-beta] - 2026-09-12
+
 ### Added
 - **Asset versioning (cache busting).** URLs returned by `freezed:resource` now
   carry a short hash of the file's content, e.g.
@@ -235,7 +237,11 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.3.3-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.6.0-beta...HEAD
+[0.6.0-beta]: https://github.com/neuedaten/freezed/compare/v0.5.0-beta...v0.6.0-beta
+[0.5.0-beta]: https://github.com/neuedaten/freezed/compare/v0.4.1-beta...v0.5.0-beta
+[0.4.1-beta]: https://github.com/neuedaten/freezed/compare/v0.4.0-beta...v0.4.1-beta
+[0.4.0-beta]: https://github.com/neuedaten/freezed/compare/v0.3.3-beta...v0.4.0-beta
 [0.3.3-beta]: https://github.com/neuedaten/freezed/compare/v0.3.2-beta...v0.3.3-beta
 [0.3.2-beta]: https://github.com/neuedaten/freezed/compare/v0.3.1-beta...v0.3.2-beta
 [0.3.1-beta]: https://github.com/neuedaten/freezed/compare/v0.3.0-beta...v0.3.1-beta
