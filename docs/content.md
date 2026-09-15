@@ -351,9 +351,47 @@ The `as` variable only exists inside the tag.
 | `orderBy` | no | `folderName` | Item key to sort by. `folderName` sorts by directory name; any other value (e.g. `title`) sorts by that key from `variables.php`. |
 | `orderDirection` | no | `ASC` | `ASC` or `DESC`. |
 | `limit` | no | `100` | Maximum number of items, applied after sorting. `0` returns all items. |
+| `filter` | no | — | Boolean expression every item must satisfy, in [`f:if` condition syntax](#filtering-items). `%key%` placeholders stand for the item's values. |
 
 > Sorting by `folderName` is handy when you prefix item folders to control
 > order — e.g. `000-…`, `001-…` — while keeping a clean `title` for display.
+
+### Filtering items
+
+`filter` takes a boolean expression and keeps only the items for which it
+holds. The syntax is the one you already know from `<f:if condition="…">`:
+`==`, `!=`, `<`, `>`, `<=`, `>=`, `!`, `&&`/`and`, `||`/`or`, parentheses,
+quoted strings, numbers and `true`/`false`. A single `=` is accepted as `==`.
+
+Item values are referenced as `%key%` — every key from `variables.php` plus the
+derived `folderName` and `url`. Placeholders stay unquoted, exactly like a
+variable in `f:if`; dot paths reach into nested arrays (`%meta.lang%`).
+
+```html
+<freezed:contentTypeCollection contentType="news" filter="%category% == 'News' && !%hidden%" as="items">
+    …
+</freezed:contentTypeCollection>
+```
+
+Because `filter` is a normal Fluid argument, variables of the surrounding
+template are interpolated before the expression is evaluated. That makes
+"related items" lists a one-liner — compare against the current page's own
+values and leave the page itself out:
+
+```html
+<freezed:contentTypeCollection contentType="news" filter="%category% == '{category}' && %url% != '{url}'" limit="3" as="related">
+    …
+</freezed:contentTypeCollection>
+```
+
+Wrap interpolated values in quotes so a value with spaces stays one string.
+Comparisons behave like PHP's loose comparison, so `%prio% > 5` works on
+numbers and `%date% >= '2026-01-01'` on ISO dates. A `%key%` that an item does
+not define evaluates like an undefined Fluid variable: `!%key%` and
+`%key% == ''` hold, `%key%` alone does not. An expression that cannot be parsed
+(e.g. an unclosed quote) fails the build with the offending filter in the
+message. The filter runs before `orderBy` and `limit`, so `limit` counts the
+matching items.
 
 Combine `orderBy`, `orderDirection` and `limit` for "latest N" teasers:
 

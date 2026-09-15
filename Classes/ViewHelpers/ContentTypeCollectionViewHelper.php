@@ -4,9 +4,12 @@ namespace Neuedaten\Freezed\ViewHelpers;
 
 use Neuedaten\Freezed\Domain\Model\ContentType;
 use Neuedaten\Freezed\Services\ContentUrlService;
+use TYPO3Fluid\Fluid\Core\Parser\BooleanParser;
+use TYPO3Fluid\Fluid\Core\Parser\SyntaxTree\BooleanNode;
 use TYPO3Fluid\Fluid\Core\Variables\ScopedVariableProvider;
 use TYPO3Fluid\Fluid\Core\Variables\StandardVariableProvider;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
+use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
 
 /**
  * Collects all items of a given content type and exposes them as an array to
@@ -18,7 +21,12 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  * variable is only available inside the tag. "limit" caps the number of items
  * after sorting (default 100, 0 = no limit).
  *
- *     <freezed:contentTypeCollection contentType="cases" orderBy="title" orderDirection="DESC" limit="5" as="items">
+ * "filter" keeps only items for which a boolean expression holds. It uses the
+ * same syntax as the f:if condition; %key% placeholders stand for the item's
+ * values (dot paths reach into nested arrays) and stay unquoted, like Fluid
+ * variables in f:if. A single "=" is accepted as "==".
+ *
+ *     <freezed:contentTypeCollection contentType="cases" filter="%category% == 'News' && !%hidden%" orderBy="title" orderDirection="DESC" limit="5" as="items">
  *         <f:for each="{items}" as="item">
  *             <a href="{item.url}">{item.title}</a>
  *         </f:for>
@@ -40,11 +48,13 @@ class ContentTypeCollectionViewHelper extends AbstractViewHelper
         $this->registerArgument('orderBy', 'string', 'Item key to sort by. The special value "folderName" sorts by the item directory name', false, 'folderName');
         $this->registerArgument('orderDirection', 'string', 'Sort direction: ASC or DESC', false, 'ASC');
         $this->registerArgument('limit', 'int', 'Maximum number of items to expose after sorting. 0 disables the limit', false, 100);
+        $this->registerArgument('filter', 'string', 'Boolean expression in f:if syntax that every item must satisfy. %key% placeholders are replaced by the item\'s values, e.g. "%category% == \'News\'"', false, '');
     }
 
     public function render(): string
     {
         $items = $this->collectItems($this->arguments['contentType']);
+        $items = $this->filterItems($items, (string) $this->arguments['filter']);
         $items = $this->sortItems(
             $items,
             $this->arguments['orderBy'],
@@ -100,6 +110,120 @@ class ContentTypeCollectionViewHelper extends AbstractViewHelper
         }
 
         return $items;
+    }
+
+    /**
+     * Keep only the items for which the filter expression evaluates to true.
+     * An empty filter keeps everything.
+     *
+     * The expression is evaluated by Fluid's own BooleanParser, so it accepts
+     * exactly what an f:if condition accepts: ==, !=, <, >, <=, >=, %, !,
+     * && / and, || / or, parentheses, quoted strings, numbers, true/false.
+     * Item values enter the expression through %key% placeholders. They are
+     * swapped for {nodeN} context references before parsing, mirroring how
+     * BooleanNode hands variables to the parser, so the values keep their
+     * type instead of being pasted into the expression as text.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterItems(array $items, string $filter): array
+    {
+        $filter = $this->normalizeEqualityOperator(trim($filter));
+        if ($filter === '') {
+            return $items;
+        }
+
+        $parser = new BooleanParser();
+        $kept = [];
+        foreach ($items as $item) {
+            [$expression, $context] = $this->bindPlaceholders($filter, $item);
+
+            try {
+                $result = $parser->evaluate($expression, $context);
+            } catch (\Throwable $exception) {
+                // Not chained on purpose: the build log reports the innermost
+                // cause, and that should name the filter as written in the
+                // template rather than the rewritten {nodeN} form.
+                throw new Exception(sprintf(
+                    'contentTypeCollection: invalid filter expression "%s" (%s)',
+                    $filter,
+                    $exception->getMessage()
+                ), 1758000000);
+            }
+
+            if (BooleanNode::convertToBoolean($result, $this->renderingContext)) {
+                $kept[] = $item;
+            }
+        }
+
+        return $kept;
+    }
+
+    /**
+     * Replace every %key% (or %key.path%) placeholder by a {nodeN} reference
+     * and collect the referenced item values in a context array.
+     *
+     * Unknown keys resolve to null, so "%missing% == ''" and "!%missing%" both
+     * hold, matching how f:if treats undefined variables.
+     *
+     * @param array<string, mixed> $item
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    private function bindPlaceholders(string $filter, array $item): array
+    {
+        $context = [];
+        $counter = 0;
+
+        $expression = preg_replace_callback(
+            '/%([A-Za-z0-9_.\-]+)%/',
+            function (array $match) use ($item, &$context, &$counter): string {
+                $reference = 'node' . $counter++;
+                $context[$reference] = $this->resolvePath($item, $match[1]);
+
+                return '{' . $reference . '}';
+            },
+            $filter
+        );
+
+        return [$expression, $context];
+    }
+
+    /**
+     * Read a dot-separated path from the item array, e.g. "meta.category".
+     */
+    private function resolvePath(array $item, string $path): mixed
+    {
+        $value = $item;
+        foreach (explode('.', $path) as $segment) {
+            if (is_array($value) && array_key_exists($segment, $value)) {
+                $value = $value[$segment];
+                continue;
+            }
+
+            if (is_object($value) && isset($value->{$segment})) {
+                $value = $value->{$segment};
+                continue;
+            }
+
+            return null;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Accept a lone "=" as "==" so "filter="%category% = News"" reads naturally.
+     * Quoted strings are left untouched; ==, ===, !=, !==, <= and >= are not
+     * affected either.
+     */
+    private function normalizeEqualityOperator(string $filter): string
+    {
+        return (string) preg_replace_callback(
+            '/\'(?:\\\\.|[^\'\\\\])*\'|"(?:\\\\.|[^"\\\\])*"|(?<![=!<>])=(?!=)/',
+            static fn (array $match): string => $match[0] === '=' ? '==' : $match[0],
+            $filter
+        );
     }
 
     /**

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0-beta] - 2026-09-15
+
+### Added
+- **`filter` on `contentTypeCollection`.** Keeps only items that satisfy a
+  boolean expression in `f:if` syntax, with `%key%` placeholders for the
+  item's values (dot paths for nested arrays, a lone `=` accepted as `==`):
+  `filter="%category% == 'News' && !%hidden%"`. Fluid variables of the
+  surrounding template are interpolated as usual, so
+  `filter="%category% == '{category}' && %url% != '{url}'"` lists related
+  items of the current page. Runs before `orderBy` and `limit`.
+
 ## [0.9.0-beta] - 2026-09-15
 
 ### Added
@@ -297,7 +308,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.9.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.10.0-beta...HEAD
+[0.10.0-beta]: https://github.com/neuedaten/freezed/compare/v0.9.0-beta...v0.10.0-beta
 [0.9.0-beta]: https://github.com/neuedaten/freezed/compare/v0.8.0-beta...v0.9.0-beta
 [0.8.0-beta]: https://github.com/neuedaten/freezed/compare/v0.7.0-beta...v0.8.0-beta
 [0.7.0-beta]: https://github.com/neuedaten/freezed/compare/v0.6.0-beta...v0.7.0-beta
