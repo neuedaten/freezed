@@ -72,6 +72,11 @@ return [
 ];
 ```
 
+`targetFileName` may contain a path. The sub-folders are created below the
+content type's `targetDirectory` at build time, so
+`'targetFileName' => 'guides/first-steps/index.html'` writes
+`public/guides/first-steps/index.html`.
+
 ### Public URLs
 
 Wherever Freezed derives a page's URL — the [`link` ViewHelper](#linking-between-pages),
@@ -86,6 +91,7 @@ to its directory:
 | `public/index.html` | `/` |
 | `public/cases/first-case.html` | `/cases/first-case.html` |
 | `public/cases/index.html` | `/cases/` |
+| `public/cases/first/index.html` | `/cases/first/` |
 
 ## Default and per-page variables
 

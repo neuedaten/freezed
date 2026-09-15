@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0-beta] - 2026-09-15
+
+### Fixed
+- **Index files in sub-folders kept `index.html` in their URL.** A page whose
+  `targetFileName` contains a path (e.g. `guides/first-steps/index.html`) was
+  written to the right place, but every URL Freezed derived for it — the
+  sitemap `<loc>`, the `url` key of `contentTypeCollection` items and
+  `<freezed:link href="CONTENT:…">` — ended in `/index.html` instead of the
+  directory URL. Such a sitemap entry contradicts the page's canonical URL.
+  `index.<ext>` now collapses to its directory at any depth:
+  `/guides/first-steps/` instead of `/guides/first-steps/index.html`.
+
 ## [0.7.0-beta] - 2026-09-13
 
 ### Changed
@@ -264,7 +276,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.7.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.8.0-beta...HEAD
+[0.8.0-beta]: https://github.com/neuedaten/freezed/compare/v0.7.0-beta...v0.8.0-beta
 [0.7.0-beta]: https://github.com/neuedaten/freezed/compare/v0.6.0-beta...v0.7.0-beta
 [0.6.0-beta]: https://github.com/neuedaten/freezed/compare/v0.5.0-beta...v0.6.0-beta
 [0.5.0-beta]: https://github.com/neuedaten/freezed/compare/v0.4.1-beta...v0.5.0-beta

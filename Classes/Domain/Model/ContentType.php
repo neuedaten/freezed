@@ -124,7 +124,8 @@ class ContentType
      * Root-relative public path this item is built to, e.g. "/cases/case2.html".
      *
      * A target file named index.<ext> collapses to its directory URL: "/" for
-     * the root and "/cases/" for targetDirectory "cases".
+     * the root, "/cases/" for targetDirectory "cases", and "/cases/first/" for
+     * a targetFileName "first/index.html" that points into a sub-folder.
      */
     public function getPublicPath(): string
     {
@@ -133,11 +134,7 @@ class ContentType
 
         $base = '/' . ($directory !== '' ? $directory . '/' : '');
 
-        if (preg_match('/^index\.[a-z0-9]+$/i', $fileName)) {
-            return $base;
-        }
-
-        return $base . $fileName;
+        return $base . preg_replace('/(^|\/)index\.[a-z0-9]+$/i', '$1', $fileName);
     }
 
     public function getVariables(): array
