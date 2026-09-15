@@ -18,7 +18,9 @@ return [
     // Write public/sitemap.xml on every build.
     'sitemap' => [
         'enabled' => true,
-        'lastmod' => null,   // fallback for pages without their own lastmod
+        'lastmod' => null,          // fallback for pages without their own date
+        'lastmodFrom' => 'lastmod', // page variable that holds the date
+        'excludeWhen' => null,      // page variable that excludes when truthy, e.g. 'noindex'
     ],
 
     // Site-wide variables, available to every content type and page.
@@ -151,19 +153,44 @@ the cache key as well — see [Processing images](content.md#processing-images).
 
 ## `sitemap`
 
-Generates `public/sitemap.xml` on every build, listing every item of every
-content type.
+Generates `public/sitemap.xml` on every build, listing the HTML documents of
+every content type.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `enabled` | bool | `false` | Write the sitemap. `'sitemap' => true` is accepted as a shorthand. |
 | `lastmod` | string \| DateTimeInterface \| null | `null` | Fallback `<lastmod>` for pages that don't define their own. Any `strtotime()`-parseable value works (e.g. `'2026-01-31'`, `date('Y-m-d')`). `null` omits the element. |
+| `lastmodFrom` | string | `'lastmod'` | Name of the page variable that holds the date, e.g. `'modified'` when your pages already carry a modification date for display or structured data. |
+| `excludeWhen` | string \| null | `null` | Name of a page variable whose truthy value excludes the page, e.g. `'noindex'`. Lets the sitemap follow a flag you already maintain instead of a second switch. |
 
 Per page, in `variables.php`:
 
-- `'lastmod' => '2026-01-31'` sets the page's own `<lastmod>` (same formats as
-  above). It wins over the config fallback.
-- `'sitemap' => false` excludes the page from the sitemap.
+- `'lastmod' => '2026-01-31'` (or the variable named by `lastmodFrom`) sets
+  the page's own `<lastmod>`, same formats as above. It wins over the config
+  fallback.
+- `'sitemap' => false` always excludes the page.
+- `'sitemap' => true` always includes it, overriding `excludeWhen` and the
+  document rule below.
+
+Only HTML documents are listed: pages whose URL is a directory (`/cases/`),
+has no extension, or ends in `.html`/`.htm`. Pages built to other files, such
+as `llms.txt` or `robots.txt` via `targetFileName`, are skipped unless they set
+`'sitemap' => true`.
+
+With `excludeWhen` and `lastmodFrom` the sitemap can reuse flags your templates
+already read:
+
+```php
+'sitemap' => [
+    'enabled' => true,
+    'lastmodFrom' => 'modified',   // the date shown as "last updated" on the page
+    'excludeWhen' => 'noindex',    // the flag that renders <meta name="robots" content="noindex">
+],
+```
+
+If a content item or a file in `static/` already produced
+`public/sitemap.xml`, the generated sitemap overwrites it and the build logs a
+warning.
 
 URLs follow the same rule as everywhere else: a page written as `index.html`
 appears as its directory URL (`https://example.com/`, `https://example.com/cases/`).

@@ -33,7 +33,7 @@ content/ + themes/   ──►   freezed build   ──►   public/  (static HT
 - **Content as folders** — every page is a folder with a template and a `variables.php`.
 - **Asset pipeline** — reference CSS/JS/images via the `resource` ViewHelper.
 - **Links that don't break** — `<freezed:link href="CONTENT:pages/about">` resolves to the page's URL at build time.
-- **Sitemap** — optional `sitemap.xml` generated from all pages, with per-page `lastmod`.
+- **Sitemap** — optional `sitemap.xml` generated from all HTML pages, with per-page `lastmod`; can follow your own `noindex` and date variables.
 - **Static files** — anything in `static/` is copied verbatim into the build.
 - **Build hooks** — run shell commands before and after a build.
 - **Zero runtime** — the output is just files; host it on any static host or CDN.

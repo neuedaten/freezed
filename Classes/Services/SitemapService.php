@@ -11,16 +11,31 @@ use Neuedaten\Freezed\Domain\Model\ContentType;
  *     'siteUrl' => 'https://example.com',
  *     'sitemap' => [
  *         'enabled' => true,
- *         'lastmod' => null,   // fallback for items without their own lastmod
+ *         'lastmod' => null,          // fallback for items without their own lastmod
+ *         'lastmodFrom' => 'lastmod', // item variable that holds the date
+ *         'excludeWhen' => null,      // item variable whose truthy value excludes, e.g. 'noindex'
  *     ],
+ *
+ * Only HTML documents are listed: items whose public path ends in a
+ * directory, has no extension or ends in .html/.htm. Other output files
+ * (llms.txt, robots.txt, …) are skipped unless the item opts in.
  *
  * Per item (variables.php):
  *   'lastmod' => '2026-01-31'   // any strtotime()-parseable value or DateTimeInterface
- *   'sitemap' => false          // exclude this item
+ *   'sitemap' => false          // always exclude this item
+ *   'sitemap' => true           // always include it, regardless of excludeWhen and file type
  */
 class SitemapService
 {
     public const FILE_NAME = 'sitemap.xml';
+
+    /** @var array{enabled: bool, lastmod: mixed, lastmodFrom: string, excludeWhen: string|null} */
+    public const DEFAULTS = [
+        'enabled' => false,
+        'lastmod' => null,
+        'lastmodFrom' => 'lastmod',
+        'excludeWhen' => null,
+    ];
 
     protected static self|null $instance = null;
 
@@ -45,7 +60,14 @@ class SitemapService
             return false;
         }
 
-        $fileService->writeFile(self::FILE_NAME, $this->generate($config['lastmod']));
+        if ($fileService->fileExists(self::FILE_NAME)) {
+            LogService::getInstance()->warning(
+                'Sitemap: public/' . self::FILE_NAME . ' was already written by a content item or a static file '
+                . 'and is now overwritten by the generated sitemap. Rename that file or disable "sitemap".'
+            );
+        }
+
+        $fileService->writeFile(self::FILE_NAME, $this->generate($config));
 
         return true;
     }
@@ -53,10 +75,12 @@ class SitemapService
     /**
      * Build the sitemap XML for all content items.
      *
-     * @param mixed $defaultLastmod Fallback lastmod for items without their own.
+     * @param array{enabled?: bool, lastmod?: mixed, lastmodFrom?: string, excludeWhen?: string|null} $config
+     *        Sitemap options; missing keys fall back to their defaults.
      */
-    public function generate(mixed $defaultLastmod = null): string
+    public function generate(array $config = []): string
     {
+        $config += self::DEFAULTS;
         $urlService = ContentUrlService::getInstance();
 
         $siteUrl = $urlService->getSiteUrl();
@@ -67,7 +91,7 @@ class SitemapService
             );
         }
 
-        $defaultDate = $this->formatDate($defaultLastmod, 'sitemap.lastmod in freezed.config.php');
+        $defaultDate = $this->formatDate($config['lastmod'], 'sitemap.lastmod in freezed.config.php');
 
         $lines = [
             '<?xml version="1.0" encoding="UTF-8"?>',
@@ -75,13 +99,13 @@ class SitemapService
         ];
 
         foreach ($urlService->getAllItems() as $model) {
-            if (!$this->isIncluded($model)) {
+            if (!$this->isIncluded($model, $config['excludeWhen'])) {
                 continue;
             }
 
             $loc = $siteUrl !== '' ? $urlService->getUrl($model, true) : $model->getPublicPath();
 
-            $itemLastmod = $model->getVariables()['lastmod'] ?? null;
+            $itemLastmod = $model->getVariables()[$config['lastmodFrom']] ?? null;
             $lastmod = $this->formatDate($itemLastmod, $model->getTypeSlug() . '/' . $model->getTitle())
                 ?? $defaultDate;
 
@@ -102,34 +126,74 @@ class SitemapService
      * Normalised sitemap configuration. Accepts `'sitemap' => true` as a
      * shorthand for `['enabled' => true]`.
      *
-     * @return array{enabled: bool, lastmod: mixed}
+     * @return array{enabled: bool, lastmod: mixed, lastmodFrom: string, excludeWhen: string|null}
      */
     private function getConfig(): array
     {
         $raw = ConfigService::getInstance()->getValue('[sitemap]');
 
         if ($raw === true) {
-            return ['enabled' => true, 'lastmod' => null];
+            return ['enabled' => true] + self::DEFAULTS;
         }
 
         if (!is_array($raw)) {
-            return ['enabled' => false, 'lastmod' => null];
+            return self::DEFAULTS;
         }
+
+        $lastmodFrom = $raw['lastmodFrom'] ?? null;
+        $excludeWhen = $raw['excludeWhen'] ?? null;
 
         return [
             'enabled' => (bool) ($raw['enabled'] ?? false),
             'lastmod' => $raw['lastmod'] ?? null,
+            'lastmodFrom' => is_string($lastmodFrom) && $lastmodFrom !== '' ? $lastmodFrom : self::DEFAULTS['lastmodFrom'],
+            'excludeWhen' => is_string($excludeWhen) && $excludeWhen !== '' ? $excludeWhen : null,
         ];
     }
 
     /**
-     * An item is excluded when its variables set 'sitemap' => false.
+     * Decide whether an item is listed. The item's own 'sitemap' variable is
+     * authoritative: false always excludes, true always includes. Otherwise
+     * the item is excluded when the excludeWhen variable (e.g. 'noindex') is
+     * truthy, or when its output is not an HTML document.
      */
-    private function isIncluded(ContentType $model): bool
+    private function isIncluded(ContentType $model, ?string $excludeWhen): bool
     {
         $variables = $model->getVariables();
 
-        return !(array_key_exists('sitemap', $variables) && $variables['sitemap'] === false);
+        if (array_key_exists('sitemap', $variables)) {
+            if ($variables['sitemap'] === false) {
+                return false;
+            }
+            if ($variables['sitemap'] === true) {
+                return true;
+            }
+        }
+
+        if ($excludeWhen !== null && !empty($variables[$excludeWhen])) {
+            return false;
+        }
+
+        return self::isDocument($model->getPublicPath());
+    }
+
+    /**
+     * True for public paths that denote an HTML document: a directory URL
+     * ("/cases/"), an extensionless path ("/about") or a .html/.htm file.
+     */
+    public static function isDocument(string $publicPath): bool
+    {
+        if ($publicPath === '' || str_ends_with($publicPath, '/')) {
+            return true;
+        }
+
+        $lastSegment = substr($publicPath, strrpos($publicPath, '/') + 1);
+        $dot = strrpos($lastSegment, '.');
+        if ($dot === false) {
+            return true;
+        }
+
+        return in_array(strtolower(substr($lastSegment, $dot + 1)), ['html', 'htm'], true);
     }
 
     /**

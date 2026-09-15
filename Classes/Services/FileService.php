@@ -54,6 +54,15 @@ class FileService
         }
     }
 
+    /**
+     * True when a file with this path (relative to the public directory)
+     * already exists in the current build output.
+     */
+    public function fileExists(string $path): bool
+    {
+        return is_file($this->targetDirectory . '/' . $path);
+    }
+
     public function writeFile(string $path, string $content): void
     {
         $path = $this->targetDirectory . '/' . $path;

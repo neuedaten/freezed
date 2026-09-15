@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.8.0-beta] - 2026-09-15
 
+### Added
+- **`sitemap.excludeWhen`.** Names a page variable (e.g. `'noindex'`) whose
+  truthy value drops the page from the sitemap, so the sitemap follows the
+  flag your templates already use for `<meta name="robots">` instead of a
+  second `'sitemap' => false` that has to be kept in sync. `'sitemap' => false`
+  still always excludes; `'sitemap' => true` always includes.
+- **`sitemap.lastmodFrom`.** Names the page variable that holds the
+  `<lastmod>` date (default `'lastmod'`), e.g. `'modified'` when pages already
+  carry a modification date for display or structured data.
+
+### Changed
+- **The sitemap lists HTML documents only.** Pages whose URL is a directory,
+  has no extension or ends in `.html`/`.htm` are included; other output files
+  built via `targetFileName` (`llms.txt`, `robots.txt`, …) are skipped unless
+  the page sets `'sitemap' => true`.
+- **Overwriting an existing `sitemap.xml` is reported.** When a content item
+  or a file in `static/` already produced `public/sitemap.xml`, the build logs
+  a warning before the generated sitemap replaces it.
+
 ### Fixed
 - **Index files in sub-folders kept `index.html` in their URL.** A page whose
   `targetFileName` contains a path (e.g. `guides/first-steps/index.html`) was

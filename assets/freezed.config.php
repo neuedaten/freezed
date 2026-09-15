@@ -10,7 +10,9 @@ return [
     // 'sitemap' => false and set their own 'lastmod' in variables.php.
     // 'sitemap' => [
     //     'enabled' => true,
-    //     'lastmod' => null,   // fallback, e.g. '2026-01-31' or date('Y-m-d')
+    //     'lastmod' => null,          // fallback, e.g. '2026-01-31' or date('Y-m-d')
+    //     'lastmodFrom' => 'lastmod', // item variable holding the date, e.g. 'modified'
+    //     'excludeWhen' => null,      // item variable that excludes when truthy, e.g. 'noindex'
     // ],
 
     // Asset URLs from freezed:resource carry a hash of the file's content

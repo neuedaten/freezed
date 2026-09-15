@@ -24,11 +24,16 @@ return [
     // URLs in the sitemap and by <freezed:link absolute="true">.
     'siteUrl' => '',
 
-    // Sitemap (public/sitemap.xml). "lastmod" is the fallback for items whose
-    // variables.php has no "lastmod" of its own; null omits <lastmod>.
+    // Sitemap (public/sitemap.xml). Lists HTML documents only.
+    // "lastmod" is the fallback for items without a date of their own; null
+    // omits <lastmod>. "lastmodFrom" names the item variable that holds the
+    // date. "excludeWhen" names an item variable (e.g. 'noindex') whose truthy
+    // value drops the item from the sitemap; null disables that rule.
     'sitemap' => [
         'enabled' => false,
         'lastmod' => null,
+        'lastmodFrom' => 'lastmod',
+        'excludeWhen' => null,
     ],
     'themeTemplatesPath' => '/templates/templates/',
     'themeLayoutsPath' => '/templates/layouts/',
