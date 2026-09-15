@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.0-beta] - 2026-09-15
+## [0.9.0-beta] - 2026-09-15
 
 ### Added
 - **`sitemap.excludeWhen`.** Names a page variable (e.g. `'noindex'`) whose
@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Overwriting an existing `sitemap.xml` is reported.** When a content item
   or a file in `static/` already produced `public/sitemap.xml`, the build logs
   a warning before the generated sitemap replaces it.
+
+## [0.8.0-beta] - 2026-09-15
 
 ### Fixed
 - **Index files in sub-folders kept `index.html` in their URL.** A page whose
@@ -295,7 +297,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.8.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.9.0-beta...HEAD
+[0.9.0-beta]: https://github.com/neuedaten/freezed/compare/v0.8.0-beta...v0.9.0-beta
 [0.8.0-beta]: https://github.com/neuedaten/freezed/compare/v0.7.0-beta...v0.8.0-beta
 [0.7.0-beta]: https://github.com/neuedaten/freezed/compare/v0.6.0-beta...v0.7.0-beta
 [0.6.0-beta]: https://github.com/neuedaten/freezed/compare/v0.5.0-beta...v0.6.0-beta
