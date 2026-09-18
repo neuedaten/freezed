@@ -12,9 +12,12 @@ Running `freezed build` performs these steps:
    `freezed.config.php`.
 2. **Discover pages.** Inside each content type, every sub-folder is a *page*
    (e.g. `content/pages/home`).
-3. **Clear the output.** The `public/` directory is emptied.
+3. **Clear the output.** The `public/` directory is emptied, dot files
+   included. A `.git` directory inside `public/` is the one thing left alone,
+   so a deployment repository there survives a build.
 4. **Copy static files.** Everything in the project's `static/` folder and each
-   theme's `static/` folder is copied into `public/` verbatim.
+   theme's `static/` folder is copied into `public/` verbatim, dot files and dot
+   directories (`.htaccess`, `.well-known/`) included.
 5. **Render pages.** Each page is rendered with Fluid, using the themes' template,
    layout and partial paths plus the page's own folder. Output is written to
    `public/`.

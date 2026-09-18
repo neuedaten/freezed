@@ -7,6 +7,12 @@ use Neuedaten\Freezed\Domain\Model\Resource;
 class FileService
 {
 
+    /**
+     * File names that are never part of a site and are therefore not copied:
+     * desktop metadata the operating system writes into every folder it opens.
+     */
+    private const IGNORED_FILE_NAMES = ['.DS_Store', 'Thumbs.db'];
+
     protected string $targetDirectory;
 
     public function __construct()
@@ -38,8 +44,14 @@ class FileService
             throw new \Exception('Path is not inside project root');
         }
 
-        $files = glob($path . '/*');
-        foreach ($files as $file) {
+        foreach (self::directoryItems($path) as $file) {
+            // A .git directory below public/ belongs to a deployment setup, not
+            // to the build output. Deleting it would be unrecoverable, so it is
+            // the one entry a build leaves alone.
+            if (basename($file) === '.git') {
+                continue;
+            }
+
             if (is_file($file)) {
                 unlink($file);
                 LogService::getInstance()->add('Delete file: ' . $file,
@@ -101,6 +113,10 @@ class FileService
         }
     }
 
+    /**
+     * Copy a directory verbatim, including dot files and dot directories
+     * (.htaccess, .well-known/), which is what static/ is for.
+     */
     public function copyDirectoryItems(string $source, string $target): void
     {
         $source = self::virtualRealpath($source);
@@ -108,8 +124,11 @@ class FileService
 
         $this->createDirectoryIfNotExist($target);
 
-        $files = glob($source . '/*');
-        foreach ($files as $file) {
+        foreach (self::directoryItems($source) as $file) {
+            if (in_array(basename($file), self::IGNORED_FILE_NAMES, true)) {
+                continue;
+            }
+
             if (is_file($file)) {
                 $targetFile = $target . '/' . basename($file);
                 copy($file, $targetFile);
@@ -141,6 +160,31 @@ class FileService
         }
     }
 
+
+    /**
+     * Absolute paths of everything in a directory, dot files included -- unlike
+     * glob(), which skips them unless the pattern starts with a dot.
+     *
+     * @return string[]
+     */
+    private static function directoryItems(string $path): array
+    {
+        $entries = @scandir($path);
+        if ($entries === false) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $items[] = $path . DIRECTORY_SEPARATOR . $entry;
+        }
+
+        return $items;
+    }
 
     static function virtualRealpath($path): string
     {

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0-beta] - 2026-09-18
+
+### Fixed
+- **Dot files in `static/` are published.** The copy from `static/` (project and
+  themes) into `public/` skipped every entry whose name starts with a dot, so
+  `.htaccess`, `.well-known/` and similar files never reached the build. They
+  are copied now, directories included. `.DS_Store` and `Thumbs.db` stay
+  excluded.
+
+### Changed
+- **Clearing `public/` removes dot files too**, so a file deleted from `static/`
+  disappears from the next build instead of lingering. A `.git` directory
+  directly inside `public/` is kept, for deployment setups that publish from a
+  repository in the output folder.
+
 ## [0.10.0-beta] - 2026-09-15
 
 ### Added
@@ -308,7 +323,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.10.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.11.0-beta...HEAD
+[0.11.0-beta]: https://github.com/neuedaten/freezed/compare/v0.10.0-beta...v0.11.0-beta
 [0.10.0-beta]: https://github.com/neuedaten/freezed/compare/v0.9.0-beta...v0.10.0-beta
 [0.9.0-beta]: https://github.com/neuedaten/freezed/compare/v0.8.0-beta...v0.9.0-beta
 [0.8.0-beta]: https://github.com/neuedaten/freezed/compare/v0.7.0-beta...v0.8.0-beta

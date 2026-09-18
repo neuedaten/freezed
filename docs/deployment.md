@@ -136,6 +136,10 @@ location ~* \.(css|js|svg|woff2?|png|jpe?g|webp|gif)$ {
 </IfModule>
 ```
 
+On shared hosting, where you cannot edit the server config, put these rules
+into `static/.htaccess` instead. Dot files in `static/` are part of the build,
+so the file ends up at the document root on every deploy.
+
 Files in `static/` are not versioned by default — they are meant to have stable
 URLs. Keep their `Cache-Control` short, or enable
 [`assetVersioningStatic`](configuration.md#assetversioningstatic) and reference
@@ -148,7 +152,9 @@ them through `{freezed:resource(path: '…', context: 'static')}`.
 - Use root-absolute URLs (`/about.html`, `/assets/...`) so links work regardless
   of the page they're on.
 - The `public/` folder is regenerated on every build and is git-ignored by
-  default — build in CI rather than committing it.
+  default — build in CI rather than committing it. A build empties it, dot
+  files included; only a `.git` directory directly inside `public/` is kept, so
+  publishing from a repository in the output folder still works.
 - Add a `static/robots.txt` and `static/favicon.svg` (theme or project `static/`)
   for production-readiness.
 - Set `siteUrl` and enable the [sitemap](configuration.md#sitemap), then point

@@ -152,6 +152,11 @@ Anything in a theme's `static/` folder is copied **verbatim** into `public/` on
 every build, keeping its relative path. Use it for files that need a fixed path,
 such as `favicon.svg`, `robots.txt` or `.well-known/` files.
 
+Files and folders whose name starts with a dot are copied along with the rest,
+so `.htaccess` and `.well-known/acme-challenge/` land in the build. The only
+exceptions are the metadata files the operating system leaves behind
+(`.DS_Store`, `Thumbs.db`) — those are never copied.
+
 The project's own `static/` folder is copied first, then each theme's in theme
 order, and every copy overwrites the previous one. So for static files a
 **theme wins over the project**, and a later theme wins over an earlier one —
