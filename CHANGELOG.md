@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0-beta] - 2026-09-24
+
 ### Added
 - **Content sources.** A content type can take its items from somewhere other
   than the folders below `content/<type>/`: set `'source'` in its config to a
@@ -363,7 +365,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.11.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.12.0-beta...HEAD
+[0.12.0-beta]: https://github.com/neuedaten/freezed/compare/v0.11.0-beta...v0.12.0-beta
 [0.11.0-beta]: https://github.com/neuedaten/freezed/compare/v0.10.0-beta...v0.11.0-beta
 [0.10.0-beta]: https://github.com/neuedaten/freezed/compare/v0.9.0-beta...v0.10.0-beta
 [0.9.0-beta]: https://github.com/neuedaten/freezed/compare/v0.8.0-beta...v0.9.0-beta
