@@ -3,7 +3,18 @@
 namespace Neuedaten\Freezed\Services;
 
 use Neuedaten\Freezed\Domain\Model\Resource;
+use Neuedaten\Freezed\Exception\PathNotAllowedException;
 
+/**
+ * File system access for the build.
+ *
+ * One rule applies to every file a build reads on behalf of a template: it
+ * must lie below the project directory or below one of the configured
+ * assetRoots. assertAllowedPath() enforces it; the ViewHelpers and the content
+ * sources call it before touching a file, so a stray ".." in a template or a
+ * path that arrived through the data cannot pull files from elsewhere on the
+ * machine into public/.
+ */
 class FileService
 {
 
@@ -211,6 +222,13 @@ class FileService
         return implode(DIRECTORY_SEPARATOR, $resultPathParts);
     }
 
+    /**
+     * The path relative to the root it belongs to, with a leading slash:
+     * "/00_default/assets/css/main.css" for a theme file,
+     * "/pages/home/assets/hero.jpg" for a content file and
+     * "/media/2026/terrace.jpg" for a file below the assetRoots entry "media".
+     * A path below none of them is returned unchanged.
+     */
     static function getPathWithoutThemeOrContentDirectory(string $path): string
     {
         $configService = ConfigService::getInstance();
@@ -219,15 +237,89 @@ class FileService
         $contentPath = $configService->getValue('[projectRoot]') . '/'
             . $configService->getValue('[contentPath]');
 
-        if (str_starts_with($path, $themesPath)) {
-            return str_replace($themesPath, '', $path);
+        // Paths arrive both as configured (projectRoot + contentPath) and as
+        // real paths, so match against both spellings of each root.
+        foreach ([$themesPath, $contentPath] as $root) {
+            foreach (array_unique([$root, realpath($root) ?: $root]) as $candidate) {
+                if (self::isInside($path, $candidate)) {
+                    return substr($path, strlen(rtrim($candidate, '/\\')));
+                }
+            }
         }
 
-        if (str_starts_with($path, $contentPath)) {
-            return str_replace($contentPath, '', $path);
+        $assetRoot = AssetRootService::getInstance()->relativize($path);
+        if ($assetRoot !== null) {
+            return '/' . $assetRoot[0] . str_replace('\\', '/', $assetRoot[1]);
         }
 
         return $path;
+    }
+
+    /**
+     * Real path of the project root.
+     */
+    public static function getProjectRootRealPath(): string
+    {
+        $projectRoot = (string) ConfigService::getInstance()->getValue('[projectRoot]');
+
+        return realpath($projectRoot) ?: rtrim($projectRoot, '/\\');
+    }
+
+    /**
+     * True for "/etc/passwd", "C:\\data" and "\\\\server\\share".
+     */
+    public static function isAbsolutePath(string $path): bool
+    {
+        return str_starts_with($path, '/')
+            || str_starts_with($path, '\\')
+            || (bool) preg_match('#^[A-Za-z]:[\\\\/]#', $path);
+    }
+
+    /**
+     * True when $path is $root itself or lies below it. Both are compared as
+     * given, so pass real paths (or two lexically normalised paths).
+     */
+    public static function isInside(string $path, string $root): bool
+    {
+        $root = rtrim($root, '/\\');
+
+        return $path === $root
+            || str_starts_with($path, $root . '/')
+            || str_starts_with($path, $root . '\\');
+    }
+
+    /**
+     * Make sure a real path lies below the project directory, one of the
+     * configured assetRoots, or one of the additional roots given, and throw
+     * otherwise.
+     *
+     * @param string   $realPath    The resolved (realpath) file or directory.
+     * @param string   $description What the path is, for the error message,
+     *                              e.g. 'freezed:image src "…"'.
+     * @param string[] $extraRoots  Further real paths that are acceptable, e.g.
+     *                              the template root of the item being rendered.
+     *
+     * @throws PathNotAllowedException
+     */
+    public static function assertAllowedPath(string $realPath, string $description, array $extraRoots = []): void
+    {
+        $roots = array_merge(
+            [self::getProjectRootRealPath()],
+            array_values(AssetRootService::getInstance()->getRoots()),
+            $extraRoots
+        );
+
+        foreach ($roots as $root) {
+            if ($root !== '' && self::isInside($realPath, $root)) {
+                return;
+            }
+        }
+
+        throw new PathNotAllowedException(sprintf(
+            '%s resolves to "%s", outside the project directory. Freezed only reads files below the project root and the configured assetRoots.',
+            $description,
+            $realPath
+        ));
     }
 
 }

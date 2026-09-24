@@ -39,6 +39,7 @@ class CompileService
         // starts from the current state of the content directory.
         $contentUrlService = ContentUrlService::getInstance();
         $contentUrlService->reset();
+        AssetRootService::getInstance()->reset();
         $this->contentRepositories = $contentUrlService->getRepositories();
 
         $renderService = RenderService::getInstance();
@@ -107,7 +108,9 @@ class CompileService
 
     /**
      * Build a short, project-relative identifier for the model's template,
-     * e.g. "content/pages/home".
+     * e.g. "content/pages/home". Items from a content source share the type's
+     * folder, so their slug (and a non-default template) is named as well:
+     * "content/entries/restaurant (item entries/seeblick)".
      */
     private function describeTemplate(ContentType $model): string
     {
@@ -118,7 +121,19 @@ class CompileService
             $path = ltrim(substr($path, strlen($projectRoot)), '/\\');
         }
 
-        return $path !== '' ? $path : $model->getTypeSlug() . '/' . $model->getTitle();
+        if ($path === '') {
+            $path = $model->getTypeSlug() . '/' . $model->getTitle();
+        }
+
+        if ($model->getTemplate() !== ContentType::DEFAULT_TEMPLATE) {
+            $path .= '/' . $model->getTemplate();
+        }
+
+        if (!$model->hasOwnDirectory()) {
+            $path .= ' (item ' . $model->getTypeSlug() . '/' . $model->getTitle() . ')';
+        }
+
+        return $path;
     }
 
     /**

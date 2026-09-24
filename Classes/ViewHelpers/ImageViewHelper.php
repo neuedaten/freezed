@@ -2,8 +2,12 @@
 
 namespace Neuedaten\Freezed\ViewHelpers;
 
+use Neuedaten\Freezed\Exception\PathNotAllowedException;
+use Neuedaten\Freezed\Services\AssetRootService;
 use Neuedaten\Freezed\Services\ConfigService;
+use Neuedaten\Freezed\Services\FileService;
 use Neuedaten\Freezed\Services\ImageService;
+use Neuedaten\Freezed\Services\StaticFilesService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
@@ -14,19 +18,24 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  *     <img src="{freezed:image(src: 'assets/images/hero.jpg', context: 'theme', width: 800, fileType: 'webp', quality: 80)}" alt="">
  *
  * Arguments:
- *   src             Path to the source image (resolved like freezed:resource).
- *   context         'theme' to resolve from theme template roots; otherwise the content template root.
+ *   src             Path to the source image, relative to the context's root.
+ *   context         Where to resolve src: 'theme' (theme roots, a later theme
+ *                   wins), 'static' (the static/ directories), the name of an
+ *                   assetRoots entry, or empty for the content template root.
  *   width / height  Target size in px, or 'auto' (keeps aspect ratio).
  *   fileType        Output format: jpg, jpeg, png, webp, gif. Defaults to the source type.
  *   quality         Encoding quality for lossy formats (default from config).
  *   scaleUp         Allow enlarging beyond the original size (default false).
+ *
+ * src is always relative; an absolute path is an error, and so is a path that
+ * resolves to a place outside the project directory and the assetRoots.
  */
 class ImageViewHelper extends AbstractViewHelper
 {
     public function initializeArguments(): void
     {
         $this->registerArgument('src', 'string', 'Path to the source image', true);
-        $this->registerArgument('context', 'string', 'Resolution context ("theme" or default)', false);
+        $this->registerArgument('context', 'string', 'Resolution context: "theme", "static", an assetRoots name, or empty for the content template root', false);
         $this->registerArgument('width', 'string', 'Target width in px, or "auto"', false, 'auto');
         $this->registerArgument('height', 'string', 'Target height in px, or "auto"', false, 'auto');
         $this->registerArgument('fileType', 'string', 'Output format: jpg, png, webp, gif', false);
@@ -65,35 +74,65 @@ class ImageViewHelper extends AbstractViewHelper
 
     /**
      * Resolve the absolute path of the source image, mirroring how
-     * ResourceViewHelper resolves resources.
+     * ResourceViewHelper resolves resources. Returns null for a missing file
+     * (ImageService logs it); throws for a path that breaks the file rule.
+     *
+     * @throws PathNotAllowedException
      */
     private function resolveSourcePath(string $src, ?string $context): ?string
     {
+        $context = (string) $context;
+        $description = 'freezed:image src "' . $src . '"';
+
+        if (FileService::isAbsolutePath($src)) {
+            throw new PathNotAllowedException(
+                $description . ' is absolute. Paths are relative to the context\'s root; '
+                . 'add a folder to assetRoots and name it as context to read files from elsewhere in the project.'
+            );
+        }
+
         $templateRootPaths = $this->renderingContext->getTemplatePaths()->getTemplateRootPaths();
         $configService = ConfigService::getInstance();
 
-        if ($context === 'theme') {
-            $themesPath = $configService->getValue('[projectRoot]') . '/' . $configService->getValue('[themesPath]');
+        switch ($context) {
+            case 'theme':
+                $themesPath = $configService->getValue('[projectRoot]') . '/' . $configService->getValue('[themesPath]');
 
-            // Prefer the theme highest in the override order (last match wins).
-            $resolved = null;
-            foreach ($templateRootPaths as $templateRootPath) {
-                if (str_starts_with($templateRootPath, $themesPath)) {
-                    $themePath = $this->getThemePath($themesPath, $templateRootPath);
-                    $candidate = realpath($themesPath . '/' . $themePath . '/' . $src);
-                    if ($candidate !== false) {
-                        $resolved = $candidate;
+                // Prefer the theme highest in the override order (last match wins).
+                $resolved = null;
+                foreach ($templateRootPaths as $templateRootPath) {
+                    if (str_starts_with($templateRootPath, $themesPath)) {
+                        $themePath = $this->getThemePath($themesPath, $templateRootPath);
+                        $candidate = realpath($themesPath . '/' . $themePath . '/' . $src);
+                        if ($candidate !== false) {
+                            $resolved = $candidate;
+                        }
                     }
                 }
-            }
+                break;
 
-            return $resolved;
+            case 'static':
+                $resolved = StaticFilesService::getInstance()->resolvePath($src) ?: null;
+                break;
+
+            case '':
+                $templateRootPath = $templateRootPaths[count($templateRootPaths) - 1];
+                $candidate = realpath($templateRootPath . '/' . $src);
+                $resolved = $candidate !== false ? $candidate : null;
+                break;
+
+            default:
+                // Checked against the root by the service itself.
+                return AssetRootService::getInstance()->resolveFile($context, $src);
         }
 
-        $templateRootPath = $templateRootPaths[count($templateRootPaths) - 1];
-        $candidate = realpath($templateRootPath . '/' . $src);
+        if ($resolved !== null) {
+            // The content template root is trusted as well: it is the item's
+            // own folder, which may be a symlink to somewhere else.
+            FileService::assertAllowedPath($resolved, $description, [end($templateRootPaths) ?: '']);
+        }
 
-        return $candidate !== false ? $candidate : null;
+        return $resolved;
     }
 
     private function getThemePath(string $themesPath, string $themeTemplatePath): string

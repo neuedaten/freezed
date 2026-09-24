@@ -50,6 +50,17 @@ return [
                 'pageTitle' => 'Case study',
             ],
         ],
+        // Items from a class, script or JSON file instead of folders.
+        'entries' => [
+            'targetDirectory' => 'entries',
+            'targetFileExtension' => 'html',
+            'source' => \App\Content\EntrySource::class,
+        ],
+    ],
+
+    // Folders templates may read files from via context="<name>".
+    'assetRoots' => [
+        'media' => 'data/media',
     ],
 
     'scripts' => [
@@ -85,6 +96,47 @@ A map of content type slug → configuration. The slug must match a folder name 
 | `targetDirectory` | string | Output sub-folder under `public/` (`''` = root). |
 | `targetFileExtension` | string | Default extension for generated files (e.g. `html`). |
 | `variables` | array | Variables for every page of this type. Override the site-wide [`variables`](#variables-site-wide); overridden per page. |
+| `source` | string \| object | Where the items come from. Unset: the folders below `content/<type>/`. A class name implementing `ContentSourceInterface`, a path to a PHP script or JSON file (relative to the project root), or a source object. See [Content sources](content.md#content-sources). |
+
+## `assetRoots`
+
+Named folders that templates may read files from, in addition to the content
+folder, the themes and `static/`:
+
+```php
+'assetRoots' => [
+    'media' => 'data/media',
+    'downloads' => 'data/downloads',
+],
+```
+
+A root is addressed by its name as the `context` of
+[`freezed:image`](content.md#processing-images) and
+[`freezed:resource`](themes.md#assets-and-the-resource-viewhelper), with paths
+relative to it:
+
+```html
+<img src="{freezed:image(src: '2026/terrace.jpg', context: 'media', width: 800)}" alt="">
+<a href="{freezed:resource(path: 'brochure.pdf', context: 'downloads')}">Brochure</a>
+```
+
+Published files carry the root's name: `public/images/media/2026/terrace_….webp`
+and `public/downloads/brochure.pdf` for the examples above. Choose names that
+do not clash with a content type's `targetDirectory`.
+
+Rules:
+
+- Paths are relative to the project root and must stay inside it; `../shared`
+  and absolute paths are rejected. A root may be a symlink to a folder
+  elsewhere (`data/media -> ../shared-media`).
+- Names consist of letters, digits, `-` and `_`. `theme`, `static` and
+  `content` are reserved.
+- A root that does not exist fails the build.
+
+Freezed reads files only below the project directory and these roots, see
+[Where files may come from](content.md#where-files-may-come-from).
+
+Default: `[]`.
 
 ## `siteUrl`
 
@@ -235,6 +287,7 @@ overridden in `freezed.config.php`:
 | `publicPath` | `public` | Build output folder. |
 | `staticPath` | `static` | Project-level static files. |
 | `assetsDirectory` | `''` | Sub-path under `public/` for copied resources. |
+| `assetRoots` | `[]` | Named folders templates may read files from, see [`assetRoots`](#assetroots). |
 | `assetVersioning` | `true` | Append a content hash to asset URLs, see [`assetVersioning`](#assetversioning). |
 | `assetVersioningStatic` | `false` | Version files from `static/` too, see [`assetVersioningStatic`](#assetversioningstatic). |
 | `siteUrl` | `''` | Public base URL of the site, see [`siteUrl`](#siteurl). |

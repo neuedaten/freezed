@@ -42,7 +42,7 @@ class RenderService
         $context = new RenderingContext();
         $context->setTemplatePaths($paths);
         $context->setVariableProvider(new StandardVariableProvider($variables));
-        $context->setControllerAction('index');
+        $context->setControllerAction($contentType->getTemplate());
 
         $resolver = $context->getViewHelperResolver();
         $resolver->addNamespace('freezed', 'Neuedaten\Freezed\\ViewHelpers');

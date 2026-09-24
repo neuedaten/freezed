@@ -11,7 +11,9 @@ Running `freezed build` performs these steps:
    type* (e.g. `pages`). It must have a matching entry under `contentTypes` in
    `freezed.config.php`.
 2. **Discover pages.** Inside each content type, every sub-folder is a *page*
-   (e.g. `content/pages/home`).
+   (e.g. `content/pages/home`). A content type with a `source` asks that
+   class, script or JSON file for its items instead; its folder then only
+   holds the templates.
 3. **Clear the output.** The `public/` directory is emptied, dot files
    included. A `.git` directory inside `public/` is the one thing left alone,
    so a deployment repository there survives a build.
@@ -57,6 +59,11 @@ The folder name becomes the default output filename
 (`content/pages/about` → `about.html`), unless you override it with a
 `targetFileName` variable.
 
+Pages need not be folders. A content type can take its items from a database,
+an API export or any other PHP or JSON source; each item then brings a slug,
+its variables and optionally the name of the template to render. See
+[Content sources](content.md#content-sources).
+
 ## Themes
 
 A theme provides the shared structure and styling. Themes live in `themes/` and
@@ -89,6 +96,14 @@ wins):
 3. **Page variables** — the page's own `variables.php`, overriding both.
 
 See [Content & pages](content.md#default-and-per-page-variables) for details.
+
+## Files a build may read
+
+Templates reach files through the `resource` and `image` ViewHelpers, always
+with a path relative to a root: the page's folder, a theme, `static/`, or a
+folder named in `assetRoots`. Every root lies inside the project directory,
+and a path that resolves to a place outside those roots fails the build. See
+[Where files may come from](content.md#where-files-may-come-from).
 
 ## Output
 

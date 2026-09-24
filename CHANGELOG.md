@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Content sources.** A content type can take its items from somewhere other
+  than the folders below `content/<type>/`: set `'source'` in its config to a
+  class implementing `Neuedaten\Freezed\Domain\Source\ContentSourceInterface`,
+  to a PHP script that returns the items (`'data/entries.php'`), to a JSON
+  file (`'data/entries.json'`) or to a source object. Each item brings a
+  `slug`, its `variables` and optionally a `template` name inside
+  `content/<type>/`, which then only holds the templates and shared assets.
+  Variables merge as before (site-wide, content type, item), and output files,
+  `CONTENT:` links, `contentTypeCollection` and the sitemap treat sourced items
+  like folder items. Without `'source'` nothing changes. One instance serves
+  every content type that names the same class. See
+  [Content sources](docs/content.md#content-sources).
+- **`freezed watch` rebuilds on data changes.** `ContentSourceInterface::getVersion()`
+  is polled alongside the watched files; a JSON source reports its file's
+  version automatically.
+- **`assetRoots`.** Named folders inside the project, e.g.
+  `'assetRoots' => ['media' => 'data/media']`, that `freezed:image` and
+  `freezed:resource` read from via `context="media"`. Published files carry the
+  root's name (`public/images/media/…`, `public/media/…`). A root may be a
+  symlink to a folder elsewhere.
+- **`context="static"` for `freezed:image`**, so images from `static/` can be
+  processed as well.
+
+### Changed
+- **Builds only read files inside the project.** `src` of `freezed:image` and
+  `path` of `freezed:resource` must be relative to their context's root; an
+  absolute path fails the build, and so does a path that resolves to a place
+  outside the project directory and the configured `assetRoots` (`context:
+  'static'` keeps accepting a leading slash, because there the path is the
+  URL). A `..` that stays inside the project still works. An unknown `context`
+  is now an error instead of silently resolving against the page folder.
+- **`contentTypeCollection` sorts numbers as numbers.** Two numeric values
+  (`'0.25'`, `'9'`, `74`) compare numerically instead of as strings; two
+  strings keep their natural order.
+- **Template errors name the item** for sourced items:
+  `content/entries/restaurant (item entries/seeblick)`.
+- A page folder that is a symlink keeps the name it has inside `content/` as
+  its slug, instead of the name of the folder it points to.
+
 ## [0.11.0-beta] - 2026-09-18
 
 ### Fixed

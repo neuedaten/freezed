@@ -250,8 +250,8 @@ TYPO3's `f:image`:
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `src` | — | Path to the source image, resolved like `freezed:resource`. |
-| `context` | (template root) | `theme` resolves from the theme template roots; otherwise relative to the content template. |
+| `src` | — | Path to the source image, relative to the context's root (resolved like `freezed:resource`). |
+| `context` | (template root) | `theme` resolves from the theme template roots, `static` from the `static/` directories, the name of an [`assetRoots`](configuration.md#assetroots) entry from that folder; empty resolves relative to the content template. |
 | `width` | `auto` | Target width in px, or `auto`. |
 | `height` | `auto` | Target height in px, or `auto`. |
 | `fileType` | source type | Output format: `jpg`, `png`, `webp`, `gif`. |
@@ -262,15 +262,17 @@ The aspect ratio is always preserved: give one of `width`/`height` to scale by
 that side, or both to fit the image inside that box. With `scaleUp` left at
 `false` the image is never enlarged past its original dimensions.
 
-Generated files mirror the source's path below `content/` or `themes/` — the
-same sub-folders `freezed:resource` uses — followed by the original name, target
-resolution, quality and a short hash of the source content:
+Generated files mirror the source's path below `content/`, `themes/` or the
+asset root — the same sub-folders `freezed:resource` uses — followed by the
+original name, target resolution, quality and a short hash of the source
+content:
 
 | Source | Output |
 |--------|--------|
 | `content/pages/home/assets/hero.jpg` | `public/images/pages/home/assets/hero_800x600_q80_a1b2c3d4.webp` |
 | `content/news/launch/assets/hero.jpg` | `public/images/news/launch/assets/hero_800x600_q80_e5f6a7b8.webp` |
 | `themes/00_default/assets/images/hero.jpg` | `public/images/00_default/assets/images/hero_800x600_q80_c9d0e1f2.webp` |
+| `data/media/2026/terrace.jpg` via `context="media"` | `public/images/media/2026/terrace_800x600_q80_d3e4f5a6.webp` |
 
 A `hero.jpg` in one content folder therefore never collides with a `hero.jpg`
 in another. Everything that affects the result is part of the name (`scaleUp`
@@ -293,6 +295,37 @@ Superseded files stay in `var/cache/images/`; they are never published, they
 just take up disk space. Run `./vendor/bin/freezed cache:flush` to clear them
 out.
 
+### Where files may come from
+
+`freezed:image` and `freezed:resource` only read files below the project
+directory and the configured [`assetRoots`](configuration.md#assetroots).
+`src`/`path` is always relative to its context's root: an absolute path
+(`/var/…`) fails the build, and so does a relative path that resolves to a
+place outside those roots (`../../../etc/hosts`). A `..` that stays inside the
+project is fine. The rule keeps a stray path — a typo, or a value that arrived
+through a [content source](#content-sources) — from copying arbitrary files of
+the build machine into `public/`.
+
+To use images or downloads that live outside `content/` and `themes/`, give
+their folder a name in `assetRoots` and address it as `context`:
+
+```php
+// freezed.config.php
+'assetRoots' => [
+    'media' => 'data/media',
+],
+```
+
+```html
+<img src="{freezed:image(src: '2026/terrace.jpg', context: 'media', width: 800)}" alt="">
+<a href="{freezed:resource(path: 'brochure.pdf', context: 'media')}">Brochure</a>
+```
+
+The folder must lie inside the project. It may be a symlink to a folder
+elsewhere (`data/media -> ../shared-media`) — that link is the deliberate
+decision, made in the project, that the folder belongs to the site. Files are
+still checked against the linked folder, so a path cannot leave it.
+
 ## Adding a new content type
 
 To add, say, a blog:
@@ -314,6 +347,194 @@ To add, say, a blog:
 > Every content type folder in `content/` **must** have a matching config entry,
 > or the build will stop with an error.
 
+## Content sources
+
+By default the items of a content type are the folders below
+`content/<type>/`. A content type can instead take its items from a PHP class,
+a PHP script or a JSON file — a database, an API export, a spreadsheet, whatever
+you have — while everything else stays the same: variables, output files,
+`CONTENT:` links, `contentTypeCollection`, the sitemap. Set `source` on the
+content type:
+
+```php
+'contentTypes' => [
+    'pages' => [                              // no "source": folders, as before
+        'targetDirectory' => '',
+        'targetFileExtension' => 'html',
+    ],
+    'entries' => [
+        'targetDirectory' => 'entries',
+        'targetFileExtension' => 'html',
+        'source' => \App\Content\EntrySource::class,
+    ],
+    'spots' => [
+        'targetDirectory' => 'spots',
+        'targetFileExtension' => 'html',
+        'source' => \App\Content\EntrySource::class,   // same class, shared instance
+    ],
+    'search' => [
+        'targetDirectory' => '',
+        'targetFileExtension' => 'json',
+        'source' => 'data/search.php',
+    ],
+],
+```
+
+The folder `content/<type>/` still exists — it is what makes the type known —
+but for a sourced type it holds only the templates and shared assets:
+
+```text
+content/entries/
+├─ index.html        # default template for every item
+├─ restaurant.html   # used by items that name it (see "template" below)
+└─ assets/           # shared assets, resolved relative to this folder
+```
+
+`source` accepts:
+
+| Value | Meaning |
+|-------|---------|
+| *(none)* or `'directory'` | The folders below `content/<type>/` — the default. |
+| `\App\Content\EntrySource::class` | A class implementing `Neuedaten\Freezed\Domain\Source\ContentSourceInterface`, autoloaded through your project's `composer.json`. One instance serves every content type that names the class, so types can share a database connection. |
+| `'data/entries.php'` | A PHP script, relative to the project root. It is included like a `variables.php` and returns the items; `$typeSlug` and `$contentTypeConfig` are in scope. The script may also return a source object instead of an array. |
+| `'data/entries.json'` | A JSON file, relative to the project root, holding a list of items — or an object keyed by content type slug (`{"entries": […], "spots": […]}`) so one file can feed several types. The bridge for data produced outside PHP: a [build hook](configuration.md#scripts-build-hooks) writes it, Freezed reads it. |
+| an object | Any `ContentSourceInterface` instance, e.g. `new EntrySource($pdo)`. |
+
+Script and JSON paths must lie inside the project directory.
+
+### Items
+
+A source delivers a list of items. Each item is an array (or JSON object)
+with these keys:
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `slug` | yes | Plays the role of the folder name: it becomes the output file name (`<slug>.<ext>`, unless the variables set `targetFileName`), the `folderName` key in `contentTypeCollection` and the target of `CONTENT:<type>/<slug>`. May contain `/` for nested output paths (`2026/09/launch`); must not contain `..`. Two items with the same slug fail the build. |
+| `variables` | no | The item's variables, merged on top of the site-wide and the content type's variables exactly like a `variables.php`. |
+| `template` | no | Template name inside `content/<type>/`, without extension. Defaults to `index`, so a restaurant item with `'template' => 'restaurant'` renders `content/entries/restaurant.html`. |
+
+```php
+// data/entries.php
+<?php
+
+$db = new PDO('sqlite:' . __DIR__ . '/site.sqlite');
+$items = [];
+
+foreach ($db->query('SELECT slug, title, kind, published, hero FROM entries') as $row) {
+    $items[] = [
+        'slug' => $row['slug'],
+        'template' => $row['kind'],                 // restaurant.html, school.html, …
+        'variables' => [
+            'pageTitle' => $row['title'],
+            'title' => $row['title'],
+            'published' => $row['published'],
+            'hero' => $row['hero'],                 // e.g. "2026/terrace.jpg", see below
+        ],
+    ];
+}
+
+return $items;
+```
+
+Do the denormalising in the source — neighbours, breadcrumbs, category
+colours — so the templates stay simple and only read variables.
+
+### A source class
+
+```php
+<?php
+
+namespace App\Content;
+
+use Neuedaten\Freezed\Domain\Source\ContentSourceInterface;
+
+class EntrySource implements ContentSourceInterface
+{
+    private \PDO $db;
+
+    public function __construct()
+    {
+        $this->db = new PDO('sqlite:' . dirname(__DIR__, 2) . '/data/site.sqlite');
+    }
+
+    public function findAll(string $typeSlug, array $contentTypeConfig): iterable
+    {
+        $rows = $this->db->query("SELECT * FROM $typeSlug")->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $row) {
+            yield ['slug' => $row['slug'], 'variables' => $row];
+        }
+    }
+
+    public function getVersion(string $typeSlug, array $contentTypeConfig): ?string
+    {
+        return (string) $this->db->query("SELECT MAX(updated_at) FROM $typeSlug")->fetchColumn();
+    }
+}
+```
+
+`findAll()` receives the type slug and the type's configuration, so one class
+can serve several types. `getVersion()` returns any value that changes when
+the data changes — the newest `updated_at`, a row count, a hash. `freezed
+watch` polls it alongside the files and rebuilds when it differs, so a change
+in the database shows up in the browser like a saved template does. Return
+`null` when the source cannot tell; watch then only reacts to file changes. A
+JSON source derives its version from the file; a script that returns a plain
+array has none (returning a source object from the script provides one).
+
+Register the class in your project's `composer.json`:
+
+```json
+"autoload": {
+    "psr-4": { "App\\": "src/" }
+}
+```
+
+### Images and downloads of sourced items
+
+Items from a source have no folder of their own, so their images cannot sit
+next to a `variables.php`. Put them in a folder inside the project, name it in
+[`assetRoots`](configuration.md#assetroots) and keep the paths in the
+variables relative to it:
+
+```php
+'assetRoots' => [
+    'media' => 'data/media',        // or a symlink: data/media -> ../shared-media
+],
+```
+
+```html
+<img src="{freezed:image(src: hero, context: 'media', width: 800, fileType: 'webp')}" alt="{heroAlt}">
+```
+
+No machine path appears in the data or the templates; the variable holds
+`2026/terrace.jpg`, the template names the root. See
+[Where files may come from](#where-files-may-come-from).
+
+### Listing sourced items elsewhere
+
+`contentTypeCollection` reads the same index as everything else, so the
+newest entries appear on a folder-based home page without further ado:
+
+```html
+<freezed:contentTypeCollection contentType="entries" orderBy="published" orderDirection="DESC" limit="3" as="latest">
+    <f:for each="{latest}" as="entry">
+        <freezed:link href="{entry.url}">{entry.title}</freezed:link>
+    </f:for>
+</freezed:contentTypeCollection>
+```
+
+Non-HTML outputs — a search index, GeoJSON, a feed — are just items of a type
+with another `targetFileExtension`, or single items with a `targetFileName`
+in their variables.
+
+### Errors
+
+An unusable `source` value, a script that returns no array, an item without a
+slug, a duplicate slug or a `template` that does not exist stop the build with
+a message naming the content type and the item. Template errors of sourced
+items are reported as `content/entries/restaurant (item entries/seeblick)`.
+
 ## Listing items of a content type
 
 Use the `contentTypeCollection` ViewHelper to pull every item of a content type
@@ -331,10 +552,12 @@ items of another type (e.g. listing all `cases` from the home page).
 </freezed:contentTypeCollection>
 ```
 
-Each `item` contains every key from that item's `variables.php`, plus two
-derived keys:
+Each `item` contains every key from that item's variables (its `variables.php`,
+or the `variables` of an item from a [content source](#content-sources)), plus
+two derived keys:
 
-- `folderName` — the item's directory name (e.g. `000-theasoft-typo3`).
+- `folderName` — the item's directory name (e.g. `000-theasoft-typo3`), or
+  its slug for items from a content source.
 - `url` — the public path the item is built to (e.g. `/cases/theasoft-typo3.html`),
   derived from the content type's `targetDirectory` and the item's output
   filename. An `index.html` item yields its directory URL (`/cases/`), see
@@ -348,7 +571,7 @@ The `as` variable only exists inside the tag.
 |----------|----------|---------|-------------|
 | `contentType` | yes | — | The content type slug, matching a key in `freezed.config.php` and a folder under `content/`. |
 | `as` | yes | — | Name of the variable the collected items are assigned to. |
-| `orderBy` | no | `folderName` | Item key to sort by. `folderName` sorts by directory name; any other value (e.g. `title`) sorts by that key from `variables.php`. |
+| `orderBy` | no | `folderName` | Item key to sort by. `folderName` sorts by directory name; any other value (e.g. `title`) sorts by that key from `variables.php`. Two numeric values compare as numbers, two strings in natural order. |
 | `orderDirection` | no | `ASC` | `ASC` or `DESC`. |
 | `limit` | no | `100` | Maximum number of items, applied after sorting. `0` returns all items. |
 | `filter` | no | — | Boolean expression every item must satisfy, in [`f:if` condition syntax](#filtering-items). `%key%` placeholders stand for the item's values. |

@@ -31,7 +31,8 @@ content/ + themes/   ──►   freezed build   ──►   public/  (static HT
 - **Fluid templating** — layouts, partials, sections and ViewHelpers.
 - **Stackable themes** — drop themes into `themes/`; they layer and override cleanly.
 - **Content as folders** — every page is a folder with a template and a `variables.php`.
-- **Asset pipeline** — reference CSS/JS/images via the `resource` ViewHelper.
+- **Content from anywhere** — or point a content type at a PHP class, script or JSON file and render a database, an API export or a spreadsheet with the same templates; `freezed watch` rebuilds when the data changes.
+- **Asset pipeline** — reference CSS/JS/images via the `resource` ViewHelper; named `assetRoots` bring folders outside `content/` and `themes/` into reach, and a build never reads files outside the project.
 - **Links that don't break** — `<freezed:link href="CONTENT:pages/about">` resolves to the page's URL at build time.
 - **Sitemap** — optional `sitemap.xml` generated from all HTML pages, with per-page `lastmod`; can follow your own `noindex` and date variables.
 - **Static files** — anything in `static/` is copied verbatim into the build, `.htaccess` and other dot files included.
@@ -116,8 +117,8 @@ the Composer package [`neuedaten/freezed`](https://packagist.org/packages/neueda
 ├─ bin/freezed            # CLI entry point
 ├─ Classes/               # PSR-4: Neuedaten\Freezed\
 │  ├─ Commands/           # install / compile commands
-│  ├─ Domain/             # models + repositories (content, themes, resources)
-│  ├─ Services/           # config, compile, render, file, static, sitemap, scripts, log
+│  ├─ Domain/             # models, repositories (content, themes, resources) and content sources
+│  ├─ Services/           # config, compile, render, file, static, sitemap, scripts, log, asset roots
 │  └─ ViewHelpers/        # resource, image, link, contentTypeCollection
 ├─ assets/                # default theme + example content + default config
 ├─ includes/config.php    # built-in path defaults

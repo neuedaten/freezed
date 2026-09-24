@@ -35,6 +35,13 @@ return [
         'lastmodFrom' => 'lastmod',
         'excludeWhen' => null,
     ],
+    // Named folders, relative to the project root, that templates may read
+    // files from via context="<name>" of freezed:image and freezed:resource,
+    // e.g. ['media' => 'data/media']. Roots must lie inside the project (a
+    // symlink inside the project to a folder elsewhere is fine). Without an
+    // entry, templates only reach the content folder, the themes and static/.
+    'assetRoots' => [],
+
     'themeTemplatesPath' => '/templates/templates/',
     'themeLayoutsPath' => '/templates/layouts/',
     'themePartialsPath' => '/templates/partials/',

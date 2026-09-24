@@ -48,7 +48,23 @@ return [
             'targetDirectory' => '',
             'targetFileExtension' => 'html',
         ],
+        // A content type can read its items from a class, a PHP script or a
+        // JSON file instead of folders. content/<type>/ then only holds the
+        // templates (index.html, plus per-item templates named by the source).
+        // 'entries' => [
+        //     'targetDirectory' => 'entries',
+        //     'targetFileExtension' => 'html',
+        //     'source' => \App\Content\EntrySource::class,   // or 'data/entries.php', 'data/entries.json'
+        // ],
     ],
+
+    // Folders outside content/ and themes/ that templates may read files
+    // from, addressed as context="<name>" in freezed:image and
+    // freezed:resource. Relative to the project root and inside it (a symlink
+    // to a folder elsewhere is fine).
+    // 'assetRoots' => [
+    //     'media' => 'data/media',
+    // ],
 
     // Shell commands run before ('start') and after ('end') a build.
     'scripts' => [

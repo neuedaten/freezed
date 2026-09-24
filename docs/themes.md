@@ -131,6 +131,13 @@ copies the file into the build and returns its public URL:
   can override an earlier theme's file).
 - `context: 'static'` resolves the file from the `static/` folders instead, see
   [Static files](#static-files).
+- `context: '<name>'` resolves the file from the folder named `<name>` in
+  [`assetRoots`](configuration.md#assetroots), e.g. a downloads folder outside
+  the themes. Without a `context`, `path` is relative to the page's folder.
+
+`path` is always relative to that root. An absolute path, or one that resolves
+to a place outside the project directory and the asset roots, fails the build —
+see [Where files may come from](content.md#where-files-may-come-from).
 
 The returned URL carries a short hash of the file's content
 (`main.css?v=a1b2c3d4`) so browsers pick up a changed asset after a deployment.

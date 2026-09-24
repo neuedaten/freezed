@@ -4,6 +4,8 @@ namespace Neuedaten\Freezed\Domain\Model;
 
 class ContentType
 {
+    /** Template name rendered when an item names none. */
+    public const DEFAULT_TEMPLATE = 'index';
 
     protected string $typeSlug;
 
@@ -22,6 +24,12 @@ class ContentType
     protected string $targetFileName;
 
     protected string $targetFileExtension;
+
+    /** Template name (without extension) inside the item's template root. */
+    protected string $template = self::DEFAULT_TEMPLATE;
+
+    /** True when the item lives in a folder of its own (content/<type>/<slug>/). */
+    protected bool $ownDirectory = true;
 
 
     public function __construct(string $typeSlug, string $title, string $directoryPath, array $config = []) {
@@ -79,6 +87,31 @@ class ContentType
     public function setDirectoryPath(string $directoryPath): void
     {
         $this->directoryPath = $directoryPath;
+    }
+
+    public function getTemplate(): string
+    {
+        return $this->template;
+    }
+
+    public function setTemplate(string $template): void
+    {
+        $this->template = $template;
+    }
+
+    /**
+     * True when the item's template root is a folder of its own
+     * (content/<type>/<slug>/), false for items from another source, which
+     * share the content type's folder.
+     */
+    public function hasOwnDirectory(): bool
+    {
+        return $this->ownDirectory;
+    }
+
+    public function setOwnDirectory(bool $ownDirectory): void
+    {
+        $this->ownDirectory = $ownDirectory;
     }
 
     public function getTargetDirectoryName(): string

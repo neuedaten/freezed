@@ -8,7 +8,9 @@ namespace Neuedaten\Freezed\Services;
  *
  * Detection is done by polling file modification times (and the set of files
  * itself, so additions and deletions are noticed too). Polling needs no PHP
- * extension and works the same on every platform.
+ * extension and works the same on every platform. Content types with a custom
+ * source are polled for their version alongside, so a database change can
+ * trigger a rebuild as well.
  *
  * Each rebuild runs in a *fresh* PHP subprocess (`freezed build`). Freezed makes
  * heavy use of singletons that cache state for the duration of a process;
@@ -86,10 +88,12 @@ class WatchService
     }
 
     /**
-     * Build a map of watched file path => modification time. Comparing two
-     * snapshots detects changes, additions and deletions.
+     * Build a map of watched file path => modification time, plus one entry
+     * per content type with a custom source that reports a version (see
+     * ContentSourceInterface::getVersion()). Comparing two snapshots detects
+     * changes, additions and deletions -- and changed source data.
      *
-     * @return array<string, int>
+     * @return array<string, int|string>
      */
     private function snapshot(): array
     {
@@ -119,6 +123,10 @@ class WatchService
             if (is_file($file)) {
                 $snapshot[$file] = filemtime($file);
             }
+        }
+
+        foreach (ContentSourceService::getInstance()->getVersions() as $typeSlug => $version) {
+            $snapshot['source:' . $typeSlug] = $version;
         }
 
         ksort($snapshot);

@@ -15,8 +15,9 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
  * Collects all items of a given content type and exposes them as an array to
  * the child template, e.g. for teaser lists or menus.
  *
- * Each item holds every key from the item's variables.php, plus two derived
- * keys: "folderName" (the item directory name) and "url" (the public path the
+ * Each item holds every key from the item's variables (its variables.php, or
+ * the "variables" of an item from a content source), plus two derived keys:
+ * "folderName" (the item directory name or slug) and "url" (the public path the
  * item is built to, index.<ext> collapsing to the directory URL). The "as"
  * variable is only available inside the tag. "limit" caps the number of items
  * after sorting (default 100, 0 = no limit).
@@ -243,7 +244,10 @@ class ContentTypeCollectionViewHelper extends AbstractViewHelper
 
     /**
      * Sort items by the given key. "folderName" and "url" are available
-     * alongside every variables.php key. Unknown keys sort as empty.
+     * alongside every variables.php key. Unknown keys sort as empty. Two
+     * numeric values compare as numbers (so "0.25" sorts before "0.5" and
+     * "-10" before "-5"), two strings in natural order, anything else with
+     * PHP's standard comparison.
      *
      * @param array<int, array<string, mixed>> $items
      * @return array<int, array<string, mixed>>
@@ -256,7 +260,9 @@ class ContentTypeCollectionViewHelper extends AbstractViewHelper
             $valueA = $a[$orderBy] ?? '';
             $valueB = $b[$orderBy] ?? '';
 
-            if (is_string($valueA) && is_string($valueB)) {
+            if (is_numeric($valueA) && is_numeric($valueB)) {
+                $comparison = (float) $valueA <=> (float) $valueB;
+            } elseif (is_string($valueA) && is_string($valueB)) {
                 $comparison = strnatcasecmp($valueA, $valueB);
             } else {
                 $comparison = $valueA <=> $valueB;
