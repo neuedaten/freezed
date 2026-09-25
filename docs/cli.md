@@ -102,6 +102,13 @@ The command auto-detects the project root by:
 2. otherwise searching upward from the current directory for `freezed.config.php`;
 3. otherwise falling back to the current working directory.
 
+A `freezed.config.php` found *above* the current directory is only used when
+it belongs to the user running the command. The file is executable PHP, and on
+a shared machine anyone could place one in `/tmp` or another common parent
+directory. If the owner differs, the command stops with a hint; run it inside
+the project or set `FREEZED_ROOT` to use that file anyway. (Without the POSIX
+extension, and on Windows, the owner cannot be checked and the file is used.)
+
 Run a build against a specific project from anywhere:
 
 ```bash

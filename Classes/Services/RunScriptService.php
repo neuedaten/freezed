@@ -2,6 +2,13 @@
 
 namespace Neuedaten\Freezed\Services;
 
+use Neuedaten\Freezed\Exception\ScriptException;
+
+/**
+ * Runs the shell commands configured under "scripts" in freezed.config.php,
+ * e.g. 'start' and 'end' around a build, 'beforeInstall' and 'afterInstall'
+ * around freezed install.
+ */
 class RunScriptService
 {
     protected static self|null $instance = null;
@@ -29,14 +36,42 @@ class RunScriptService
         }
     }
 
+    /**
+     * Run one shell command from the project root, with its output on the
+     * console. A command that cannot be started or exits with a non-zero
+     * status stops the build.
+     *
+     * @throws ScriptException
+     */
     public function runScript(string $script): int
     {
-        $output = [];
-        $returnVar = 0;
-        $projectRoot = ConfigService::getInstance()->getValue('[projectRoot]');
-        exec('cd ' . $projectRoot . ' && ' . $script, $output, $returnVar);
+        $projectRoot = ProjectPathsService::getInstance()->getProjectRoot();
         LogService::getInstance()->add('Script: ' . $script);
 
-        return $returnVar;
+        // The command is a shell line by design (pipes, && and so on are
+        // allowed); the working directory is set by proc_open itself, so a
+        // project path with spaces or shell characters needs no quoting.
+        $process = proc_open(
+            $script,
+            [
+                0 => ['file', 'php://stdin', 'r'],
+                1 => ['file', 'php://stdout', 'w'],
+                2 => ['file', 'php://stderr', 'w'],
+            ],
+            $pipes,
+            $projectRoot
+        );
+
+        if (!is_resource($process)) {
+            throw new ScriptException('Could not start script "' . $script . '".');
+        }
+
+        $exitCode = proc_close($process);
+
+        if ($exitCode !== 0) {
+            throw new ScriptException(sprintf('Script "%s" failed with exit code %d.', $script, $exitCode));
+        }
+
+        return $exitCode;
     }
 }

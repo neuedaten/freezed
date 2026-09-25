@@ -9,7 +9,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 /**
  * Renders an <a> tag, in the spirit of TYPO3's f:link.
  *
- * "href" accepts an absolute URL (https://…, mailto:, tel:, //host), a relative
+ * "href" accepts an absolute URL (https://…, mailto:, tel:, //host; other
+ * schemes such as javascript: become dead links), a relative
  * or root-relative URL (passed through unchanged), or a content reference
  * "CONTENT:<contentType>/<itemFolder>" that is resolved at build time to the
  * item's public path (from the content type's targetDirectory and the item's
@@ -42,6 +43,13 @@ class LinkViewHelper extends AbstractTagBasedViewHelper
     /** Attributes that only make sense on an <a>; dropped on the dead-link span. */
     private const LINK_ONLY_ATTRIBUTES = ['href', 'target', 'rel', 'download', 'hreflang', 'ping', 'referrerpolicy', 'type'];
 
+    /**
+     * URL schemes a link may use. Anything else with a scheme (javascript:,
+     * data:, vbscript:, …) is rendered as a dead link, so a value that arrives
+     * through a content source cannot inject script into the page.
+     */
+    private const ALLOWED_SCHEMES = ['http', 'https', 'mailto', 'tel', 'sms', 'ftp', 'ftps', 'sftp'];
+
     public function initializeArguments(): void
     {
         parent::initializeArguments();
@@ -65,6 +73,9 @@ class LinkViewHelper extends AbstractTagBasedViewHelper
             }
             $url = $urlService->getUrl($model, $absolute, $section);
         } else {
+            if (!self::hasAllowedScheme($href)) {
+                return $this->renderDeadLink($href);
+            }
             $url = $urlService->decorate($href, $absolute, $section);
         }
 
@@ -80,15 +91,32 @@ class LinkViewHelper extends AbstractTagBasedViewHelper
     }
 
     /**
+     * True for relative and root-relative URLs, protocol-relative "//host"
+     * URLs and absolute URLs with one of the allowed schemes.
+     */
+    public static function hasAllowedScheme(string $href): bool
+    {
+        if (!ContentUrlService::isAbsoluteUrl($href) || str_starts_with($href, '//')) {
+            return true;
+        }
+
+        $scheme = strtolower((string) strstr($href, ':', true));
+
+        return in_array($scheme, self::ALLOWED_SCHEMES, true);
+    }
+
+    /**
      * Render a <span class="dead-link"> instead of a link for an unresolvable
-     * content reference. Pass-through attributes are kept (minus link-only
+     * content reference or a URL with a scheme that is not allowed. Pass-through attributes are kept (minus link-only
      * ones) so styling hooks like class, title or data-* still apply.
      */
     private function renderDeadLink(string $reference): string
     {
         if (ContentUrlService::getInstance()->markDeadLinkReported($reference)) {
             LogService::getInstance()->warning(sprintf(
-                'Dead link: "%s" does not match any content item (first seen in %s).',
+                ContentUrlService::isReference($reference)
+                    ? 'Dead link: "%s" does not match any content item (first seen in %s).'
+                    : 'Dead link: "%s" uses a URL scheme that is not allowed (first seen in %s).',
                 $reference,
                 $this->describeCurrentTemplate()
             ));

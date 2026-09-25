@@ -3,6 +3,7 @@
 namespace Neuedaten\Freezed\Services;
 
 use Neuedaten\Freezed\Domain\Repository\ThemeRepository;
+use Neuedaten\Freezed\Exception\PathNotAllowedException;
 
 /**
  * Copies the contents of the project's static/ directory and of every theme's
@@ -34,9 +35,7 @@ class StaticFilesService
         $fileService = new FileService();
 
         // Absolute target so the copy works regardless of the current working directory.
-        $configService = ConfigService::getInstance();
-        $publicPath = $configService->getValue('[projectRoot]') . DIRECTORY_SEPARATOR
-            . $configService->getValue('[publicPath]');
+        $publicPath = ProjectPathsService::getInstance()->getRealPath('publicPath');
 
         foreach ($this->staticPaths() as $staticPath) {
             $fileService->copyDirectoryItems($staticPath, $publicPath);
@@ -64,9 +63,23 @@ class StaticFilesService
 
         foreach ($this->staticPaths() as $staticPath) {
             $candidate = realpath($staticPath . '/' . $relativePath);
-            if ($candidate !== false && is_file($candidate)) {
-                $resolved = $candidate;
+            if ($candidate === false || !is_file($candidate)) {
+                continue;
             }
+
+            // The URL is built from the relative path, so the file must sit
+            // below the static directory it was found in -- and, like every
+            // file a build reads, inside the project.
+            if (!FileService::isInside($candidate, realpath($staticPath) ?: $staticPath)) {
+                throw new PathNotAllowedException(sprintf(
+                    'Static file "%s" resolves to "%s", outside the static directory "%s".',
+                    $relativePath,
+                    $candidate,
+                    $staticPath
+                ));
+            }
+
+            $resolved = $candidate;
         }
 
         return $resolved;
@@ -92,9 +105,7 @@ class StaticFilesService
 
     private function getStaticPath(): string|false
     {
-        $path = ConfigService::getInstance()->getValue('[projectRoot]') . '/' . ConfigService::getInstance()->getValue('[staticPath]');
-
-        return realpath ($path);
+        return realpath(ProjectPathsService::getInstance()->getLexicalPath('staticPath'));
     }
 
     private function getStaticPathsFromThemes(): array

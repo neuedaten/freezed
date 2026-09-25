@@ -3,7 +3,8 @@
 namespace Neuedaten\Freezed\Domain\Repository;
 
 use Neuedaten\Freezed\Domain\Model\Theme;
-use Neuedaten\Freezed\Services\ConfigService;
+use Neuedaten\Freezed\Services\FileService;
+use Neuedaten\Freezed\Services\ProjectPathsService;
 
 class ThemeRepository
 {
@@ -27,14 +28,20 @@ class ThemeRepository
             return $this->themes;
         }
 
-        $path = ConfigService::getInstance()->getValue('[projectRoot]')
-            . DIRECTORY_SEPARATOR
-            . ConfigService::getInstance()->getValue('[themesPath]');
+        $path = ProjectPathsService::getInstance()->getLexicalPath('themesPath');
 
-        $directories = glob($path . '/*', GLOB_ONLYDIR);
+        $directories = glob($path . '/*', GLOB_ONLYDIR) ?: [];
         foreach ($directories as $itemDirectory) {
-            $itemDirectory = realpath($itemDirectory);
-            $this->themes[] = $this->createModelFromPath($itemDirectory);
+            $real = realpath($itemDirectory);
+            if ($real === false) {
+                continue;
+            }
+
+            // A symlinked theme folder must point inside the project: its
+            // templates are read and its assets are published.
+            FileService::assertAllowedPath($real, 'Theme folder "' . $itemDirectory . '"');
+
+            $this->themes[] = $this->createModelFromPath($real);
         }
 
         return $this->themes;

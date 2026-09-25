@@ -196,10 +196,9 @@ class ContentTypeRepository {
      * passes it as "directory"), otherwise the content type's folder, where
      * the shared templates of a sourced type live.
      *
-     * A "directory" must be a folder inside the content directory -- judged
-     * by the path as written, so a folder in content/ that is a symlink to
-     * somewhere else is fine (its real path is used as template root), while
-     * a path that climbs out of content/ is not.
+     * A "directory" must be a folder inside the content directory on paper,
+     * and its real path must lie inside the project or an asset root -- a
+     * symlinked folder in content/ may point within those, not elsewhere.
      */
     private function resolveItemDirectory(mixed $directory, string $slug): string
     {
@@ -219,6 +218,8 @@ class ContentTypeRepository {
                 is_string($directory) ? $directory : get_debug_type($directory)
             ));
         }
+
+        FileService::assertAllowedPath($resolved, 'Content folder of item "' . $this->typeSlug . '/' . $slug . '"');
 
         return $resolved;
     }

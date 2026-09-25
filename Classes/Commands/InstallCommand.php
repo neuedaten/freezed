@@ -2,56 +2,61 @@
 
 namespace Neuedaten\Freezed\Commands;
 
+use Neuedaten\Freezed\Exception\ScriptException;
 use Neuedaten\Freezed\Services\ConfigService;
 use Neuedaten\Freezed\Services\FileService;
+use Neuedaten\Freezed\Services\LogService;
+use Neuedaten\Freezed\Services\ProjectPathsService;
 use Neuedaten\Freezed\Services\RunScriptService;
 
 class InstallCommand
 {
 
+    /**
+     * @return int Process exit code: 0 on success, 1 when a hook fails.
+     */
     public function execute(): int
     {
-        RunScriptService::getInstance()->runScriptsByEvent('beforeInstall');
+        $log = LogService::getInstance();
+
+        try {
+            RunScriptService::getInstance()->runScriptsByEvent('beforeInstall');
+        } catch (ScriptException $exception) {
+            $log->error($exception->getMessage());
+            return 1;
+        }
 
         $fileService = new FileService();
-        $configService = ConfigService::getInstance();
+        $paths = ProjectPathsService::getInstance();
 
-        $directories = [
-            $fileService::virtualRealpath($configService->getValue('[projectRoot]')
-                . '/' . $configService->getValue('[contentPath]')),
-            $fileService::virtualRealpath($configService->getValue('[projectRoot]')
-                . '/' . $configService->getValue('[publicPath]')),
-            $fileService::virtualRealpath($configService->getValue('[projectRoot]')
-                . '/' . $configService->getValue('[staticPath]')),
-            $fileService::virtualRealpath($configService->getValue('[projectRoot]')
-                . '/' . $configService->getValue('[themesPath]'))
-        ];
-
-        foreach ($directories as $directory) {
-            $this->createDirectoryIfNotExist($directory);
+        foreach (['contentPath', 'publicPath', 'staticPath', 'themesPath'] as $key) {
+            $this->createDirectoryIfNotExist($paths->getLexicalPath($key));
         }
 
         /* copy default themes */
         $this->copyDirectoryItemsIfTargetDirectoryEmpty(
             realpath(__DIR__ . '/../../assets/themes/'),
-            realpath($configService->getValue('[projectRoot]') . '/'
-                . $configService->getValue('[themesPath]'))
+            realpath($paths->getLexicalPath('themesPath'))
         );
 
         /* copy content type pages if folder content is empty */
         $this->copyDirectoryItemsIfTargetDirectoryEmpty(
             realpath(__DIR__ . '/../../assets/content/'),
-            realpath($configService->getValue('[projectRoot]') . '/'
-                . $configService->getValue('[contentPath]'))
+            realpath($paths->getLexicalPath('contentPath'))
         );
 
         /* copy config file: */
         $fileService->copyFileIfTargetNotExists(
             __DIR__ . '/../../assets/freezed.config.php',
-            $configService->getValue('[projectRoot]') . '/freezed.config.php'
+            $paths->getProjectRoot() . '/freezed.config.php'
         );
 
-        RunScriptService::getInstance()->runScriptsByEvent('afterInstall');
+        try {
+            RunScriptService::getInstance()->runScriptsByEvent('afterInstall');
+        } catch (ScriptException $exception) {
+            $log->error($exception->getMessage());
+            return 1;
+        }
 
         return 0;
     }
@@ -76,10 +81,6 @@ class InstallCommand
             return;
         }
 
-        $fileService = new FileService();
-        $configService = ConfigService::getInstance();
-        if (is_dir($targetPath) && count(scandir($targetPath)) === 2) {
-            $fileService->copyDirectoryItems($sourcePath, $targetPath);
-        }
+        (new FileService())->copyDirectoryItems($sourcePath, $targetPath);
     }
 }

@@ -15,8 +15,9 @@ Running `freezed build` performs these steps:
    class, script or JSON file for its items instead; its folder then only
    holds the templates.
 3. **Clear the output.** The `public/` directory is emptied, dot files
-   included. A `.git` directory inside `public/` is the one thing left alone,
-   so a deployment repository there survives a build.
+   included (it is created when missing). A `.git` directory inside `public/`
+   is the one thing left alone, so a deployment repository there survives a
+   build. Symlinks are removed as links; their targets are never touched.
 4. **Copy static files.** Everything in the project's `static/` folder and each
    theme's `static/` folder is copied into `public/` verbatim, dot files and dot
    directories (`.htaccess`, `.well-known/`) included.
@@ -97,13 +98,17 @@ wins):
 
 See [Content & pages](content.md#default-and-per-page-variables) for details.
 
-## Files a build may read
+## Files a build may touch
 
-Templates reach files through the `resource` and `image` ViewHelpers, always
-with a path relative to a root: the page's folder, a theme, `static/`, or a
-folder named in `assetRoots`. Every root lies inside the project directory,
-and a path that resolves to a place outside those roots fails the build. See
-[Where files may come from](content.md#where-files-may-come-from).
+A build reads only inside the project directory and writes only below
+`public/` and the image cache. Templates reach files through the `resource`
+and `image` ViewHelpers, always with a path relative to a root: the page's
+folder, a theme, `static/`, or a folder named in `assetRoots`. Every root lies
+inside the project directory, a path that resolves to a place outside those
+roots fails the build, and a configuration under which a build would read,
+write or delete elsewhere is refused before anything runs. See
+[Where files may come from](content.md#where-files-may-come-from) and
+[Configuration › Directories and the file rule](configuration.md#directories-and-the-file-rule).
 
 ## Output
 

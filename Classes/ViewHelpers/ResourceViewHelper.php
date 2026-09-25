@@ -3,10 +3,10 @@
 namespace Neuedaten\Freezed\ViewHelpers;
 
 use Neuedaten\Freezed\Domain\Repository\ResourceRepository;
+use Neuedaten\Freezed\Domain\Repository\ThemeRepository;
 use Neuedaten\Freezed\Exception\PathNotAllowedException;
 use Neuedaten\Freezed\Services\AssetRootService;
 use Neuedaten\Freezed\Services\AssetVersionService;
-use Neuedaten\Freezed\Services\ConfigService;
 use Neuedaten\Freezed\Services\FileService;
 use Neuedaten\Freezed\Services\LogService;
 use Neuedaten\Freezed\Services\StaticFilesService;
@@ -31,7 +31,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  *
  * Except for 'static', where the path doubles as the URL, path is always
  * relative; an absolute path is an error, and so is a path that resolves to a
- * place outside the project directory and the assetRoots.
+ * place outside the project directory, its content, theme and static
+ * directories and the assetRoots.
  */
 class ResourceViewHelper extends AbstractViewHelper
 {
@@ -49,9 +50,9 @@ class ResourceViewHelper extends AbstractViewHelper
 
         // Fluid 5: read the template paths straight from the rendering context
         // (the ViewHelperVariableContainer::getView() chain is no public API).
+        // The last root is the item's own folder.
         $templateRootPaths = $this->renderingContext->getTemplatePaths()->getTemplateRootPaths();
 
-        $configService = ConfigService::getInstance();
         $description = 'freezed:resource path "' . $path . '"';
 
         if ($context !== 'static' && FileService::isAbsolutePath($path)) {
@@ -68,15 +69,11 @@ class ResourceViewHelper extends AbstractViewHelper
                 // a second time, to a path that does not match the URL.
                 return $this->renderStatic($path);
             case 'theme':
-                $themesPath = $configService->getValue('[projectRoot]') . '/' . $configService->getValue('[themesPath]');
-
+                // Themes in stacking order (the same order RenderService
+                // registers their template roots), so a later theme wins.
                 $resourcePaths = [];
-
-                foreach ($templateRootPaths as $templateRootPath) {
-                    if (str_starts_with($templateRootPath, $themesPath)) {
-                        $themePath = self::getThemePath($themesPath, $templateRootPath);
-                        $resourcePaths[] = $themesPath . '/' . $themePath . '/' . $path;
-                    }
+                foreach (ThemeRepository::getInstance()->findAll() as $theme) {
+                    $resourcePaths[] = $theme->getPath() . '/' . $path;
                 }
 
                 $fullPath = $this->pickExistingPath($resourcePaths);
@@ -98,9 +95,7 @@ class ResourceViewHelper extends AbstractViewHelper
                     return '';
                 }
 
-                // The content template root is trusted as well: it is the
-                // item's own folder, which may be a symlink to somewhere else.
-                FileService::assertAllowedPath($fullPath, $description, [$templateRootPath]);
+                FileService::assertAllowedPath($fullPath, $description);
                 break;
             default:
                 // Checked against the root by the service itself.
@@ -112,6 +107,13 @@ class ResourceViewHelper extends AbstractViewHelper
                     return '';
                 }
                 break;
+        }
+
+        if (FileService::svgContainsScript($fullPath)) {
+            LogService::getInstance()->warning(
+                'Resource not published: ' . $fullPath . ' is an SVG with script, event handlers or embedded HTML.'
+            );
+            return '';
         }
 
         $resource = ResourceRepository::getInstance()->createModelFromPath($fullPath);
@@ -165,10 +167,4 @@ class ResourceViewHelper extends AbstractViewHelper
         return AssetVersionService::applyToUrlForFile($url, $sourcePath);
     }
 
-    private function getThemePath($themesPath, $themeTemplatePath): string
-    {
-        $themeTemplatePathWithoutThemesPath = str_replace($themesPath, '',
-            $themeTemplatePath);
-        return explode('/', $themeTemplatePathWithoutThemesPath)[1];
-    }
 }

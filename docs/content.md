@@ -75,7 +75,8 @@ return [
 `targetFileName` may contain a path. The sub-folders are created below the
 content type's `targetDirectory` at build time, so
 `'targetFileName' => 'guides/first-steps/index.html'` writes
-`public/guides/first-steps/index.html`.
+`public/guides/first-steps/index.html`. It cannot leave `public/`: a value
+that climbs upwards (`../../index.html`) fails the build with the item's name.
 
 ### Public URLs
 
@@ -216,7 +217,11 @@ Every other attribute — `class`, `id`, `title`, `target`, `rel`, `download`,
 
 If a `CONTENT:` reference doesn't match any page at build time — the content
 type or the folder doesn't exist, or the reference is malformed — no link is
-created. Freezed renders a `<span class="dead-link">` with the same content and
+created. The same happens for a URL with a scheme other than `http`, `https`,
+`mailto`, `tel`, `sms` or `ftp`: `javascript:` and `data:` URLs become dead
+links, so a value that arrives through a [content source](#content-sources)
+cannot inject script into a page. Relative, root-relative and `//host` URLs
+are unaffected. Freezed renders a `<span class="dead-link">` with the same content and
 attributes instead (link-only attributes such as `target` and `rel` are dropped,
 `dead-link` is prepended to your `class`), and logs a warning naming the
 reference and the page it was first seen in. The build still succeeds.
@@ -286,6 +291,15 @@ generated once, reused on later builds and copied into `public/images/` on each
 build. Imagick is used when available, otherwise GD; source types that can't be
 decoded (e.g. SVG) are passed through unchanged — they get the content hash too.
 
+An SVG that contains a `<script>` element, an event handler attribute
+(`onload="…"`), a `javascript:` URL or a `<foreignObject>` is not published,
+by `freezed:image` or by `freezed:resource`; the build logs a warning and
+renders an empty path instead. An SVG served from the site's own origin runs
+with the site's rights, so this keeps a file that arrived through an upload
+or a [content source](#content-sources) from turning into a script on your
+domain. It is a pattern check for the plain cases, not a sanitiser: keep
+untrusted SVGs out of your data where you can.
+
 Because the filename is the cache key, image URLs are always versioned,
 independently of [`assetVersioning`](configuration.md#assetversioning). That
 also makes `public/images/` safe for a long `Cache-Control: immutable`, see
@@ -297,14 +311,24 @@ out.
 
 ### Where files may come from
 
-`freezed:image` and `freezed:resource` only read files below the project
-directory and the configured [`assetRoots`](configuration.md#assetroots).
-`src`/`path` is always relative to its context's root: an absolute path
-(`/var/…`) fails the build, and so does a relative path that resolves to a
-place outside those roots (`../../../etc/hosts`). A `..` that stays inside the
-project is fine. The rule keeps a stray path — a typo, or a value that arrived
-through a [content source](#content-sources) — from copying arbitrary files of
-the build machine into `public/`.
+A build only reads files below the project directory, its content, theme and
+static directories and the configured [`assetRoots`](configuration.md#assetroots),
+and only writes below `public/` and the image cache. `src`/`path` is always
+relative to its context's root: an absolute path (`/var/…`) fails the build,
+and so does a relative path that resolves to a place outside those roots
+(`../../../etc/hosts`). A `..` that stays inside the project is fine. The rule
+keeps a stray path — a typo, or a value that arrived through a
+[content source](#content-sources) — from copying arbitrary files of the build
+machine into `public/`.
+
+Symlinks follow one rule: a directory declared in `freezed.config.php`
+(`contentPath`, `themesPath`, `staticPath`, `publicPath`,
+`imageCacheDirectory`, an `assetRoots` entry) may be a symlink to a folder
+elsewhere — that link is a decision made in the project. Anything *below* such
+a directory must resolve inside the project or one of those roots: a page
+folder, a theme or a file in `static/` that links to somewhere else fails the
+build (static files are skipped with a warning). See
+[Configuration › Directories and the file rule](configuration.md#directories-and-the-file-rule).
 
 To use images or downloads that live outside `content/` and `themes/`, give
 their folder a name in `assetRoots` and address it as `context`:
@@ -324,7 +348,8 @@ their folder a name in `assetRoots` and address it as `context`:
 The folder must lie inside the project. It may be a symlink to a folder
 elsewhere (`data/media -> ../shared-media`) — that link is the deliberate
 decision, made in the project, that the folder belongs to the site. Files are
-still checked against the linked folder, so a path cannot leave it.
+still checked against the linked folder, so a path cannot leave it, and a
+symlink inside the folder that points elsewhere is refused.
 
 ## Adding a new content type
 

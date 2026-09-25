@@ -40,8 +40,10 @@ use Neuedaten\Freezed\Commands\InstallCommand;
 use Neuedaten\Freezed\Commands\RunCommand;
 use Neuedaten\Freezed\Commands\ServeCommand;
 use Neuedaten\Freezed\Commands\WatchCommand;
+use Neuedaten\Freezed\Exception\PathNotAllowedException;
 use Neuedaten\Freezed\Services\ConfigService;
 use Neuedaten\Freezed\Services\LogService;
+use Neuedaten\Freezed\Services\ProjectPathsService;
 
 /* ---------------------------------------------------------------------------
  * 2) Determine the project root (where the site lives).
@@ -59,10 +61,20 @@ function freezed_resolve_project_root(string $configFileName): string
     }
 
     // Walk up from the current working directory looking for the config file.
-    $dir = getcwd() ?: __DIR__;
+    // A config found *above* the working directory is only accepted when it
+    // belongs to the current user: the file is executable PHP, and on a
+    // shared machine anyone could plant one in /tmp or another common parent.
+    $cwd = getcwd() ?: __DIR__;
+    $dir = $cwd;
     $previous = null;
     while ($dir && $dir !== $previous) {
-        if (file_exists($dir . DIRECTORY_SEPARATOR . $configFileName)) {
+        $candidate = $dir . DIRECTORY_SEPARATOR . $configFileName;
+        if (file_exists($candidate)) {
+            if ($dir !== $cwd && !freezed_is_owned_by_current_user($candidate)) {
+                fwrite(STDERR, "Freezed: found $candidate above the working directory, but it belongs to another user, so it is not used." . PHP_EOL
+                    . "Run freezed inside the project, or set FREEZED_ROOT to use it anyway." . PHP_EOL);
+                exit(1);
+            }
             return $dir;
         }
         $previous = $dir;
@@ -71,6 +83,21 @@ function freezed_resolve_project_root(string $configFileName): string
 
     // No config found yet (e.g. before `install`): use the current directory.
     return getcwd() ?: __DIR__;
+}
+
+/**
+ * True when the file is owned by the user running this process. Without a
+ * way to tell (no POSIX extension, Windows), the file is trusted.
+ */
+function freezed_is_owned_by_current_user(string $file): bool
+{
+    if (!function_exists('posix_geteuid') || DIRECTORY_SEPARATOR === '\\') {
+        return true;
+    }
+
+    $owner = @fileowner($file);
+
+    return $owner === false || $owner === posix_geteuid();
 }
 
 /**
@@ -147,6 +174,15 @@ $configService->setValue('[cli]', [
 
 // Configure logging (verbosity + optional log file) for every command.
 LogService::getInstance()->configureFromBuildConfig($buildConfig, $projectRoot);
+
+// Refuse a configuration under which a command would read, write or delete
+// outside the project (or delete the project itself) before anything runs.
+try {
+    ProjectPathsService::getInstance()->validate();
+} catch (PathNotAllowedException $exception) {
+    LogService::getInstance()->error($exception->getMessage());
+    exit(1);
+}
 
 $exitCode = 0;
 

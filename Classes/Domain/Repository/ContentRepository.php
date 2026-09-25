@@ -2,7 +2,8 @@
 
 namespace Neuedaten\Freezed\Domain\Repository;
 
-use Neuedaten\Freezed\Services\ConfigService;
+use Neuedaten\Freezed\Services\FileService;
+use Neuedaten\Freezed\Services\ProjectPathsService;
 
 class ContentRepository {
 
@@ -19,13 +20,18 @@ class ContentRepository {
 
     private function findContentTypes(): void
     {
-        $configService = ConfigService::getInstance();
-        $path = $configService->getValue('[projectRoot]') . '/'
-            . trim((string) $configService->getValue('[contentPath]'), '/') . '/';
+        $path = ProjectPathsService::getInstance()->getLexicalPath('contentPath') . '/';
         $directories = glob($path . '*', GLOB_ONLYDIR) ?: [];
 
         foreach ($directories as $directory) {
             $typeSlug = basename($directory);
+
+            // A symlinked content type folder must point inside the project.
+            $real = realpath($directory);
+            if ($real !== false) {
+                FileService::assertAllowedPath($real, 'Content type folder "' . $directory . '"');
+            }
+
             $this->contentTypeRepositories[] = $this->createContentTypeRepository($typeSlug, $directory);
         }
     }

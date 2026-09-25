@@ -128,7 +128,10 @@ Rules:
 
 - Paths are relative to the project root and must stay inside it; `../shared`
   and absolute paths are rejected. A root may be a symlink to a folder
-  elsewhere (`data/media -> ../shared-media`).
+  elsewhere (`data/media -> ../shared-media`); a symlink *inside* a root that
+  points elsewhere is refused.
+- A root must not overlap `publicPath` or `imageCacheDirectory`, which the
+  build empties.
 - Names consist of letters, digits, `-` and `_`. `theme`, `static` and
   `content` are reserved.
 - A root that does not exist fails the build.
@@ -253,7 +256,9 @@ absolute URLs.
 
 ## `scripts` (build hooks)
 
-Shell commands to run around a build. Each runs from the project root.
+Shell commands to run around a build. Each runs from the project root with
+its output on the console. A command that exits with a non-zero status stops
+the build (or the install) with an error naming the command.
 
 | Event | When it runs |
 |-------|--------------|
@@ -273,6 +278,38 @@ Shell commands to run around a build. Each runs from the project root.
 
 The `install` command additionally supports `beforeInstall` and `afterInstall`
 events.
+
+## Directories and the file rule
+
+A build reads only below the project directory and writes only below
+`public/` and the image cache. The directories a project declares —
+`contentPath`, `themesPath`, `staticPath`, `publicPath`,
+`imageCacheDirectory` and every [`assetRoots`](#assetroots) entry — are
+checked before any command touches the file system. A configuration that
+breaks one of these rules stops with an error and nothing is read, written
+or deleted:
+
+- A declared directory is given relative to the project root and must be a
+  sub-directory of it: no absolute path, no empty value, no `../shared`.
+- `publicPath` and `imageCacheDirectory` are emptied by a build (or by
+  `cache:flush`). Neither may be the project itself, nor contain or lie inside
+  `content/`, `themes/`, `static/`, an asset root or each other. So
+  `'publicPath' => ''` or `'publicPath' => 'content/pages'` are refused.
+- `assetsDirectory`, `imagePublicDirectory` and a content type's
+  `targetDirectory` are relative to `public/` and may only descend: no
+  leading slash, no `..`. The theme sub-paths (`themeLayoutsPath`, …) keep
+  their leading slash by convention but may not climb upwards either.
+- A `targetFileName` in a page's variables may contain sub-folders but cannot
+  leave `public/`.
+
+Symlinks: a declared directory may be a symlink to a folder elsewhere —
+`content -> ../shared-content`, `data/media -> /srv/media` — because that link
+is a decision made in the project. Everything below a declared directory must
+resolve inside the project or one of the declared roots. A page folder or a
+theme that links elsewhere fails the build; a symlink in `static/` that points
+elsewhere is skipped with a warning; a symlink inside `public/` or the cache is
+removed as a link when the directory is emptied, its target is never touched.
+`freezed watch` does not enter symlinked directories.
 
 ## Built-in path defaults
 

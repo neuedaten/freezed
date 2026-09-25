@@ -105,9 +105,12 @@ class WatchService
             }
 
             $iterator = new \RecursiveIteratorIterator(
+                // Symlinked directories are not entered: a link to a big tree
+                // or to an ancestor would make every poll crawl it. A linked
+                // file still reports its target's modification time.
                 new \RecursiveDirectoryIterator(
                     $directory,
-                    \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS
+                    \FilesystemIterator::SKIP_DOTS
                 )
             );
 
@@ -139,17 +142,11 @@ class WatchService
      */
     private function watchedDirectories(): array
     {
-        $configService = ConfigService::getInstance();
-        $root = $configService->getValue('[projectRoot]');
-
-        $keys = ['[contentPath]', '[themesPath]', '[staticPath]'];
+        $paths = ProjectPathsService::getInstance();
         $directories = [];
 
-        foreach ($keys as $key) {
-            $relative = $configService->getValue($key);
-            if ($relative) {
-                $directories[] = $root . DIRECTORY_SEPARATOR . $relative;
-            }
+        foreach (['contentPath', 'themesPath', 'staticPath'] as $key) {
+            $directories[] = $paths->getLexicalPath($key);
         }
 
         return $directories;

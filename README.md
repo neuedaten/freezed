@@ -32,7 +32,8 @@ content/ + themes/   ──►   freezed build   ──►   public/  (static HT
 - **Stackable themes** — drop themes into `themes/`; they layer and override cleanly.
 - **Content as folders** — every page is a folder with a template and a `variables.php`.
 - **Content from anywhere** — or point a content type at a PHP class, script or JSON file and render a database, an API export or a spreadsheet with the same templates; `freezed watch` rebuilds when the data changes.
-- **Asset pipeline** — reference CSS/JS/images via the `resource` ViewHelper; named `assetRoots` bring folders outside `content/` and `themes/` into reach, and a build never reads files outside the project.
+- **Asset pipeline** — reference CSS/JS/images via the `resource` ViewHelper; named `assetRoots` bring folders outside `content/` and `themes/` into reach.
+- **Stays inside the project** — a build reads only inside the project directory and writes only below `public/`, and a configuration that would do otherwise is refused before anything runs.
 - **Links that don't break** — `<freezed:link href="CONTENT:pages/about">` resolves to the page's URL at build time.
 - **Sitemap** — optional `sitemap.xml` generated from all HTML pages, with per-page `lastmod`; can follow your own `noindex` and date variables.
 - **Static files** — anything in `static/` is copied verbatim into the build, `.htaccess` and other dot files included.

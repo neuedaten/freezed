@@ -4,6 +4,7 @@ namespace Neuedaten\Freezed\Services;
 
 use Neuedaten\Freezed\Domain\Model\ContentType;
 use Neuedaten\Freezed\Domain\Repository\ResourceRepository;
+use Neuedaten\Freezed\Exception\PathNotAllowedException;
 use Neuedaten\Freezed\Exception\TemplateRenderException;
 
 class CompileService
@@ -40,6 +41,8 @@ class CompileService
         $contentUrlService = ContentUrlService::getInstance();
         $contentUrlService->reset();
         AssetRootService::getInstance()->reset();
+        ProjectPathsService::getInstance()->reset();
+        ProjectPathsService::getInstance()->validate();
         $this->contentRepositories = $contentUrlService->getRepositories();
 
         $renderService = RenderService::getInstance();
@@ -62,8 +65,17 @@ class CompileService
                 $renderedContent = $this->renderModel($renderService, $model);
                 $model->setContent($renderedContent);
 
-                $fileService->writeFile($model->getTargetDirectoryName() . '/'
-                    . $model->getTargetFileNameWithExtension(), $renderedContent);
+                try {
+                    $fileService->writeFile($model->getTargetDirectoryName() . '/'
+                        . $model->getTargetFileNameWithExtension(), $renderedContent);
+                } catch (PathNotAllowedException $exception) {
+                    // Name the item, so a stray targetFileName is easy to find.
+                    throw new PathNotAllowedException(
+                        'Item ' . $model->getTypeSlug() . '/' . $model->getTitle() . ': ' . $exception->getMessage(),
+                        0,
+                        $exception
+                    );
+                }
 
                 $pageCount++;
                 $fileCount++;

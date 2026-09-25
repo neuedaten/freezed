@@ -2,9 +2,9 @@
 
 namespace Neuedaten\Freezed\ViewHelpers;
 
+use Neuedaten\Freezed\Domain\Repository\ThemeRepository;
 use Neuedaten\Freezed\Exception\PathNotAllowedException;
 use Neuedaten\Freezed\Services\AssetRootService;
-use Neuedaten\Freezed\Services\ConfigService;
 use Neuedaten\Freezed\Services\FileService;
 use Neuedaten\Freezed\Services\ImageService;
 use Neuedaten\Freezed\Services\StaticFilesService;
@@ -28,7 +28,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  *   scaleUp         Allow enlarging beyond the original size (default false).
  *
  * src is always relative; an absolute path is an error, and so is a path that
- * resolves to a place outside the project directory and the assetRoots.
+ * resolves to a place outside the project directory, its content, theme and
+ * static directories and the assetRoots.
  */
 class ImageViewHelper extends AbstractViewHelper
 {
@@ -92,21 +93,15 @@ class ImageViewHelper extends AbstractViewHelper
         }
 
         $templateRootPaths = $this->renderingContext->getTemplatePaths()->getTemplateRootPaths();
-        $configService = ConfigService::getInstance();
 
         switch ($context) {
             case 'theme':
-                $themesPath = $configService->getValue('[projectRoot]') . '/' . $configService->getValue('[themesPath]');
-
-                // Prefer the theme highest in the override order (last match wins).
+                // Themes in stacking order: the last theme that has the file wins.
                 $resolved = null;
-                foreach ($templateRootPaths as $templateRootPath) {
-                    if (str_starts_with($templateRootPath, $themesPath)) {
-                        $themePath = $this->getThemePath($themesPath, $templateRootPath);
-                        $candidate = realpath($themesPath . '/' . $themePath . '/' . $src);
-                        if ($candidate !== false) {
-                            $resolved = $candidate;
-                        }
+                foreach (ThemeRepository::getInstance()->findAll() as $theme) {
+                    $candidate = realpath($theme->getPath() . '/' . $src);
+                    if ($candidate !== false && is_file($candidate)) {
+                        $resolved = $candidate;
                     }
                 }
                 break;
@@ -127,18 +122,9 @@ class ImageViewHelper extends AbstractViewHelper
         }
 
         if ($resolved !== null) {
-            // The content template root is trusted as well: it is the item's
-            // own folder, which may be a symlink to somewhere else.
-            FileService::assertAllowedPath($resolved, $description, [end($templateRootPaths) ?: '']);
+            FileService::assertAllowedPath($resolved, $description);
         }
 
         return $resolved;
-    }
-
-    private function getThemePath(string $themesPath, string $themeTemplatePath): string
-    {
-        $themeTemplatePathWithoutThemesPath = str_replace($themesPath, '', $themeTemplatePath);
-
-        return explode('/', $themeTemplatePathWithoutThemesPath)[1];
     }
 }

@@ -38,9 +38,7 @@ class ServeService
 
     public function getDocumentRoot(): string
     {
-        $configService = ConfigService::getInstance();
-        return $configService->getValue('[projectRoot]') . DIRECTORY_SEPARATOR
-            . $configService->getValue('[publicPath]');
+        return ProjectPathsService::getInstance()->getLexicalPath('publicPath');
     }
 
     /**

@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0-beta] - 2026-09-25
+
+### Security
+- **A build reads only inside the project and writes only below `public/`
+  and the image cache, whatever the configuration says.** The declared
+  directories (`contentPath`, `themesPath`, `staticPath`, `publicPath`,
+  `imageCacheDirectory`, `assetRoots`) are validated before any command runs:
+  they must be sub-directories of the project, and the two directories a build
+  empties must not be the project itself or overlap any other directory. With
+  `'publicPath' => ''` a build used to delete the whole project; with
+  `'imageCacheDirectory' => '..'` `cache:flush` deleted the parent directory;
+  `'contentPath' => '../x'` executed `variables.php` files from outside the
+  project. All three now stop with an error before touching a file.
+- **Output paths are fenced.** `targetFileName`, `targetDirectory`,
+  `assetsDirectory` and `imagePublicDirectory` can no longer climb out of
+  `public/` (`'targetFileName' => '../../x.html'` used to write outside the
+  project). A `..` or a leading slash in any of them fails the build, naming
+  the item where one is involved.
+- **Emptying `public/` never follows a symlink.** A link inside `public/` is
+  removed as a link; its target is left alone (`public/x -> ../content` used
+  to delete the content directory). The prefix check that allowed
+  `'publicPath' => '../site-copy'` to empty a sibling directory is fixed.
+- **One symlink rule.** A directory declared in the configuration may be a
+  symlink to a folder elsewhere. Anything below it must resolve inside the
+  project or a declared root: a page folder or a theme that links elsewhere
+  fails the build, a symlink in `static/` that points elsewhere is skipped
+  with a warning instead of being published (`static/x -> /etc` used to copy
+  `/etc` into `public/`), and `freezed watch` no longer enters symlinked
+  directories.
+- **`context: 'static'`** refuses a path that resolves outside the static
+  directory (`../freezed.config.php` used to yield a URL and a hash of the
+  file).
+- **`freezed:link` only links `http`, `https`, `mailto`, `tel`, `sms` and
+  `ftp` URLs** (plus relative, root-relative and `//host` URLs). A
+  `javascript:` or `data:` href — e.g. a value that arrived through a content
+  source — is rendered as a dead link with a warning instead of an `<a>`.
+- **SVGs with script are not published.** `freezed:image` and
+  `freezed:resource` skip an SVG that contains a `<script>` element, an event
+  handler attribute, a `javascript:` URL or a `<foreignObject>`, log a warning
+  and render an empty path. A pattern check for the plain cases, not a
+  sanitiser.
+- **A `freezed.config.php` found above the working directory must belong to
+  the current user.** The upward search executes the file it finds, so a
+  config planted in `/tmp` by another user on a shared machine is refused
+  with a hint to run inside the project or set `FREEZED_ROOT`.
+
+### Changed
+- **Build hooks stop the build when they fail.** Commands under `scripts`
+  run from the project root via `proc_open`, with their output on the
+  console; a non-zero exit code fails the build or the install with an error
+  naming the command. Hooks used to run through `exec('cd <root> && …')`
+  without quoting, so with a space in the project path they silently did not
+  run, and their output and exit code were discarded.
+- **`public/` is created when missing** instead of failing with a stack
+  trace.
+- `freezed:image` and `freezed:resource` resolve `context: 'theme'` through
+  the theme list instead of matching template root paths as strings, which
+  also works when `themes/` is a symlink.
+
 ## [0.12.0-beta] - 2026-09-24
 
 ### Added
@@ -365,7 +424,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.12.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.13.0-beta...HEAD
+[0.13.0-beta]: https://github.com/neuedaten/freezed/compare/v0.12.0-beta...v0.13.0-beta
 [0.12.0-beta]: https://github.com/neuedaten/freezed/compare/v0.11.0-beta...v0.12.0-beta
 [0.11.0-beta]: https://github.com/neuedaten/freezed/compare/v0.10.0-beta...v0.11.0-beta
 [0.10.0-beta]: https://github.com/neuedaten/freezed/compare/v0.9.0-beta...v0.10.0-beta

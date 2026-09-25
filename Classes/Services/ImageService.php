@@ -2,6 +2,8 @@
 
 namespace Neuedaten\Freezed\Services;
 
+use Neuedaten\Freezed\Exception\PathNotAllowedException;
+
 /**
  * Processes images for the freezed:image ViewHelper: resize, change format and
  * re-encode with a given quality.
@@ -67,8 +69,16 @@ class ImageService
         $imageInfo = @getimagesize($sourcePath);
         $sourceType = $imageInfo ? $this->imageTypeToName($imageInfo[2]) : null;
 
-        // Unsupported source (e.g. SVG): pass the original through untouched.
+        // Unsupported source (e.g. SVG): pass the original through untouched,
+        // unless it is an SVG that carries script.
         if ($sourceType === null || !in_array($sourceType, self::SUPPORTED_TYPES, true)) {
+            if (FileService::svgContainsScript($sourcePath)) {
+                LogService::getInstance()->warning(
+                    'Image not published: ' . $sourcePath . ' is an SVG with script, event handlers or embedded HTML.'
+                );
+                return '';
+            }
+
             return $this->passthrough($sourcePath);
         }
 
@@ -89,7 +99,7 @@ class ImageService
         $extension = $this->extensionForType($outputType);
         $fileName = $this->buildFileName($sourcePath, $extension, $targetWidth, $targetHeight, $quality);
 
-        $cacheFile = $this->cacheDirectory() . '/' . $fileName;
+        $cacheFile = $this->cacheFile($fileName);
         if (!is_file($cacheFile)) {
             $this->createDirectory(dirname($cacheFile));
             $this->render($sourcePath, $sourceType, $cacheFile, $outputType, $targetWidth, $targetHeight, $quality);
@@ -108,7 +118,7 @@ class ImageService
             . '_' . AssetVersionService::hash($sourcePath)
             . '.' . strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
 
-        $cacheFile = $this->cacheDirectory() . '/' . $fileName;
+        $cacheFile = $this->cacheFile($fileName);
         if (!is_file($cacheFile)) {
             $this->createDirectory(dirname($cacheFile));
             copy($sourcePath, $cacheFile);
@@ -134,8 +144,8 @@ class ImageService
             '/'
         );
 
-        $publicRoot = $configService->getValue('[projectRoot]') . '/' . $configService->getValue('[publicPath]');
-        $targetFile = $publicRoot . '/' . $relativePath;
+        $publicRoot = ProjectPathsService::getInstance()->getRealPath('publicPath');
+        $targetFile = FileService::resolvePathBelow($publicRoot, $relativePath, 'Image output "' . $relativePath . '"');
 
         $this->createDirectory(dirname($targetFile));
         copy($cacheFile, $targetFile);
@@ -340,12 +350,22 @@ class ImageService
 
     /**
      * Delete all cached processed images. Returns the number of files removed.
+     *
+     * The cache directory is validated by ProjectPathsService (inside the
+     * project, not the project itself, not overlapping content, themes,
+     * static or public), and symlinks are removed as links, never followed.
      */
     public function clearCache(): int
     {
-        $directory = $this->cacheDirectory();
-        if (!is_dir($directory)) {
+        $directory = realpath($this->cacheDirectory());
+        if ($directory === false || !is_dir($directory)) {
             return 0;
+        }
+
+        if (!FileService::isInside($directory, ProjectPathsService::getInstance()->getRealPath('imageCacheDirectory'))) {
+            throw new PathNotAllowedException(
+                'Refusing to flush "' . $directory . '": it is not the configured image cache.'
+            );
         }
 
         return $this->clearDirectory($directory);
@@ -353,17 +373,28 @@ class ImageService
 
     /**
      * Recursively delete the files below a directory (the cache mirrors the
-     * source folder structure) and remove the emptied sub-directories.
+     * source folder structure) and remove the emptied sub-directories. A
+     * symlink is unlinked, whatever it points to stays untouched.
      */
     private function clearDirectory(string $directory): int
     {
         $deleted = 0;
-        foreach ((array) glob($directory . '/*') as $entry) {
-            if (is_dir($entry)) {
+        $entries = @scandir($directory) ?: [];
+
+        foreach ($entries as $name) {
+            if ($name === '.' || $name === '..') {
+                continue;
+            }
+
+            $entry = $directory . '/' . $name;
+
+            if (is_link($entry) || is_file($entry)) {
+                if (unlink($entry)) {
+                    $deleted++;
+                }
+            } elseif (is_dir($entry)) {
                 $deleted += $this->clearDirectory($entry);
                 @rmdir($entry);
-            } elseif (is_file($entry) && unlink($entry)) {
-                $deleted++;
             }
         }
 
@@ -372,10 +403,15 @@ class ImageService
 
     private function cacheDirectory(): string
     {
-        $configService = ConfigService::getInstance();
+        return ProjectPathsService::getInstance()->getRealPath('imageCacheDirectory');
+    }
 
-        return $configService->getValue('[projectRoot]') . '/'
-            . trim((string) $configService->getValue('[imageCacheDirectory]'), '/');
+    /**
+     * Absolute path of a cache file, kept below the cache directory.
+     */
+    private function cacheFile(string $fileName): string
+    {
+        return FileService::resolvePathBelow($this->cacheDirectory(), $fileName, 'Image cache file "' . $fileName . '"');
     }
 
     private function createDirectory(string $path): void

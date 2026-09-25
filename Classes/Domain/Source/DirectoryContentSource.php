@@ -2,7 +2,8 @@
 
 namespace Neuedaten\Freezed\Domain\Source;
 
-use Neuedaten\Freezed\Services\ConfigService;
+use Neuedaten\Freezed\Services\FileService;
+use Neuedaten\Freezed\Services\ProjectPathsService;
 
 /**
  * The default content source: every sub-folder of content/<type>/ is an item.
@@ -23,6 +24,14 @@ class DirectoryContentSource implements ContentSourceInterface
 
         $directories = glob($typeDirectory . '/*', GLOB_ONLYDIR) ?: [];
         foreach ($directories as $itemDirectory) {
+            // A symlinked item folder must point inside the project (or an
+            // asset root); checked before its variables.php is included.
+            $real = realpath($itemDirectory);
+            if ($real === false) {
+                continue;
+            }
+            FileService::assertAllowedPath($real, 'Content folder "' . $itemDirectory . '"');
+
             // The folder name as it appears in content/ is the slug, also for
             // a symlinked folder; the repository resolves the real path.
             yield [
@@ -47,11 +56,7 @@ class DirectoryContentSource implements ContentSourceInterface
      */
     public static function getTypeDirectory(string $typeSlug): string
     {
-        $configService = ConfigService::getInstance();
-
-        return $configService->getValue('[projectRoot]') . '/'
-            . trim((string) $configService->getValue('[contentPath]'), '/') . '/'
-            . $typeSlug;
+        return ProjectPathsService::getInstance()->getLexicalPath('contentPath') . '/' . $typeSlug;
     }
 
     private function readVariablesFile(string $itemDirectory): array
