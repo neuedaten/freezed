@@ -279,6 +279,21 @@ the build (or the install) with an error naming the command.
 The `install` command additionally supports `beforeInstall` and `afterInstall`
 events.
 
+## `commands`
+
+Commands that the project adds to the CLI, or overrides from a package
+(packages declare theirs in `composer.json`, see [CLI › Package commands](cli.md#package-commands)):
+
+```php
+'commands' => [
+    'deploy' => \App\Commands\DeployCommand::class,   // freezed deploy
+    'desk:inbox' => null,                               // removes a package's command
+],
+```
+
+Every class implements `Neuedaten\Freezed\Commands\CommandInterface`.
+`freezed run --<name>` starts a registered command next to the dev server.
+
 ## Directories and the file rule
 
 A build reads only below the project directory and writes only below

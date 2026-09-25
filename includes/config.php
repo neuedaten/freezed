@@ -69,4 +69,11 @@ return [
     'watch' => [
         'intervalMs' => 500,
     ],
+
+    // Commands added to the CLI by the project, name => class implementing
+    // Neuedaten\Freezed\Commands\CommandInterface. Packages declare theirs
+    // in composer.json (extra.freezed.commands); an entry here overrides a
+    // package's, null removes one. `freezed <name>` runs a command,
+    // `freezed run --<name>` starts it next to the dev server.
+    'commands' => [],
 ];

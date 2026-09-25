@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0-beta] - 2026-09-25
+
+### Added
+- **Command registry.** Packages add commands to the CLI through
+  `extra.freezed.commands` in their `composer.json` (name => class
+  implementing `Neuedaten\Freezed\Commands\CommandInterface`); a project
+  adds or overrides them with a `commands` key in `freezed.config.php`.
+  `freezed <name>` runs a registered command, `freezed help` lists them.
+- **`freezed run --<name>`** starts a registered command as a background
+  process next to the dev server and stops it with the server, e.g.
+  `freezed run --desk` for the Desk editorial backend.
+- **`RenderService::renderFile()`** renders a single Fluid template file
+  with given variables, layout, partial and component roots and extra
+  ViewHelper namespaces, so a package can render its own templates with
+  the core's Fluid setup (`freezed` namespace, components, `build` variable).
+
+### Changed
+- An unknown command now fails with a message instead of running a build.
+  `freezed` without a command still builds.
+
 ## [0.13.0-beta] - 2026-09-25
 
 ### Security
@@ -424,7 +444,8 @@ First public beta.
 - This is a beta. The build pipeline is stable, but the public API may change
   before the 1.0 release.
 
-[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.13.0-beta...HEAD
+[Unreleased]: https://github.com/neuedaten/freezed/compare/v0.14.0-beta...HEAD
+[0.14.0-beta]: https://github.com/neuedaten/freezed/compare/v0.13.0-beta...v0.14.0-beta
 [0.13.0-beta]: https://github.com/neuedaten/freezed/compare/v0.12.0-beta...v0.13.0-beta
 [0.12.0-beta]: https://github.com/neuedaten/freezed/compare/v0.11.0-beta...v0.12.0-beta
 [0.11.0-beta]: https://github.com/neuedaten/freezed/compare/v0.10.0-beta...v0.11.0-beta

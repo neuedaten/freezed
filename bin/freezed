@@ -41,6 +41,7 @@ use Neuedaten\Freezed\Commands\RunCommand;
 use Neuedaten\Freezed\Commands\ServeCommand;
 use Neuedaten\Freezed\Commands\WatchCommand;
 use Neuedaten\Freezed\Exception\PathNotAllowedException;
+use Neuedaten\Freezed\Services\CommandRegistryService;
 use Neuedaten\Freezed\Services\ConfigService;
 use Neuedaten\Freezed\Services\LogService;
 use Neuedaten\Freezed\Services\ProjectPathsService;
@@ -142,11 +143,6 @@ $optionArgs = array_values(array_filter(
 
 $task = $positionalArgs[0] ?? 'compile';
 
-if (in_array($task, ['-h', '--help', 'help'], true) || isset($buildConfig['help'])) {
-    freezed_print_help();
-    exit(0);
-}
-
 if (in_array($task, ['-V', '--version', 'version'], true) || isset($buildConfig['version'])) {
     fwrite(STDOUT, 'Freezed ' . freezed_version() . PHP_EOL);
     exit(0);
@@ -161,7 +157,7 @@ $configFile = $projectRoot . DIRECTORY_SEPARATOR . $configFileName;
 $config = file_exists($configFile) ? include $configFile : [];
 
 $configService = ConfigService::getInstance();
-$configService->setConfig($config);
+$configService->setConfig(is_array($config) ? $config : []);
 $configService->setValue('[projectRoot]', $projectRoot);
 $configService->setValue('[buildConfig]', $buildConfig);
 
@@ -174,6 +170,37 @@ $configService->setValue('[cli]', [
 
 // Configure logging (verbosity + optional log file) for every command.
 LogService::getInstance()->configureFromBuildConfig($buildConfig, $projectRoot);
+
+if (in_array($task, ['-h', '--help', 'help'], true) || isset($buildConfig['help'])) {
+    freezed_print_help();
+    exit(0);
+}
+
+// A command registered by a package or the project (see
+// CommandRegistryService). It validates the project's directories itself,
+// after whatever it has to prepare first.
+if (!in_array($task, CommandRegistryService::BUILT_IN, true)) {
+    try {
+        $registered = CommandRegistryService::getInstance()->get($task);
+    } catch (\RuntimeException $exception) {
+        LogService::getInstance()->error($exception->getMessage());
+        exit(1);
+    }
+
+    if ($registered === null) {
+        fwrite(STDERR, 'Freezed: unknown command "' . $task . '". Run freezed help to list the commands.' . PHP_EOL);
+        exit(1);
+    }
+
+    freezed_require_config($configFile, $configFileName, $projectRoot);
+
+    try {
+        exit($registered->execute(array_slice($positionalArgs, 1), $buildConfig));
+    } catch (PathNotAllowedException $exception) {
+        LogService::getInstance()->error($exception->getMessage());
+        exit(1);
+    }
+}
 
 // Refuse a configuration under which a command would read, write or delete
 // outside the project (or delete the project itself) before anything runs.
@@ -208,7 +235,6 @@ switch ($task) {
         break;
     case 'build':
     case 'compile':
-    default:
         freezed_require_config($configFile, $configFileName, $projectRoot);
         $exitCode = (new CompileCommand())->execute();
         break;
@@ -351,6 +377,23 @@ function freezed_changelog_version(string $path): ?string
 function freezed_print_help(): void
 {
     $version = freezed_version();
+
+    // Commands that packages or the project registered (composer.json
+    // extra.freezed.commands, "commands" in freezed.config.php).
+    $registered = '';
+    try {
+        $commands = CommandRegistryService::getInstance()->all();
+        if ($commands !== []) {
+            $registered = "\nPackage commands:\n";
+            foreach ($commands as $name => $class) {
+                $registered .= sprintf("  %-17s %s\n", $name, $class);
+            }
+            $registered .= "  Start one next to the dev server with: freezed run --<name>\n";
+        }
+    } catch (\Throwable) {
+        // Help must never fail because of a broken registration.
+    }
+
     fwrite(STDOUT, <<<TXT
 Freezed $version — a static site generator powered by TYPO3 Fluid.
 
@@ -366,7 +409,7 @@ Commands:
   cache:flush       Remove cached processed images (freezed:image).
   help, --help      Show this help.
   version, --version  Show the version.
-
+$registered
 Options:
   --<key>:<value>   Pass a build option. Options are exposed in templates via
                     the "build" variable, e.g. --enviroment:development is

@@ -7,6 +7,7 @@ use Neuedaten\Freezed\Domain\Model\ContentType;
 use Neuedaten\Freezed\Domain\Repository\ThemeRepository;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContext;
 use TYPO3Fluid\Fluid\Core\Variables\StandardVariableProvider;
+use TYPO3Fluid\Fluid\Core\ViewHelper\ViewHelperResolverDelegateInterface;
 use TYPO3Fluid\Fluid\View\TemplatePaths;
 use TYPO3Fluid\Fluid\View\TemplateView;
 
@@ -62,6 +63,62 @@ class RenderService
         $view = new TemplateView($context);
 
         return $view->render();
+    }
+
+    /**
+     * Render one Fluid template file with the given variables, outside the
+     * content pipeline -- for a package that brings templates of its own,
+     * such as a web UI. The template is addressed by its path; layouts,
+     * partials and components come from $paths (later entries win, as with
+     * themes):
+     *
+     *     RenderService::getInstance()->renderFile(
+     *         '/path/to/templates/Records/Index.html',
+     *         ['items' => $items],
+     *         [
+     *             'layoutRootPaths' => [$theme . '/layouts/'],
+     *             'partialRootPaths' => [$theme . '/partials/'],
+     *             'componentRootPaths' => [$theme . '/components/'],
+     *         ],
+     *         ['desk' => 'Neuedaten\\FreezedDesk\\ViewHelpers']
+     *     );
+     *
+     * The "freezed" namespace, the "component" namespace (for the given
+     * component roots) and the "build" variable are available as in content
+     * templates. A namespace value is a ViewHelper class prefix or a
+     * ViewHelperResolverDelegateInterface (a component collection).
+     *
+     * @param array<string, mixed>                                            $variables
+     * @param array<string, string[]>                                          $paths      layoutRootPaths, partialRootPaths, componentRootPaths, templateRootPaths
+     * @param array<string, string|ViewHelperResolverDelegateInterface>        $namespaces prefix => namespace
+     */
+    public function renderFile(string $templateFile, array $variables = [], array $paths = [], array $namespaces = []): string
+    {
+        $templatePaths = new TemplatePaths();
+        $templatePaths->setTemplateRootPaths($paths['templateRootPaths'] ?? [dirname($templateFile) . '/']);
+        $templatePaths->setLayoutRootPaths($paths['layoutRootPaths'] ?? []);
+        $templatePaths->setPartialRootPaths($paths['partialRootPaths'] ?? []);
+        $templatePaths->setTemplatePathAndFilename($templateFile);
+
+        $variables['build'] = $variables['build'] ?? (ConfigService::getInstance()->getValue('[buildConfig]') ?? []);
+
+        $context = new RenderingContext();
+        $context->setTemplatePaths($templatePaths);
+        $context->setVariableProvider(new StandardVariableProvider($variables));
+
+        $resolver = $context->getViewHelperResolver();
+        $resolver->addNamespace('freezed', 'Neuedaten\\Freezed\\ViewHelpers');
+
+        $componentRootPaths = array_values(array_filter($paths['componentRootPaths'] ?? [], 'is_dir'));
+        if ($componentRootPaths !== []) {
+            $resolver->addNamespace('component', new ComponentCollection($componentRootPaths));
+        }
+
+        foreach ($namespaces as $prefix => $namespace) {
+            $resolver->addNamespace((string) $prefix, $namespace);
+        }
+
+        return (new TemplateView($context))->render();
     }
 
     private function getTemplatePathsFromThemes(): array

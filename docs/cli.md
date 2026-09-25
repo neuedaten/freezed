@@ -17,8 +17,11 @@ available at `./vendor/bin/freezed`.
 | `watch` | | Rebuild automatically when source files change. |
 | `run` | | Build, serve and watch together (development mode). |
 | `cache:flush` | | Remove cached processed images (`freezed:image`). |
-| `help` | `-h`, `--help` | Show usage information. |
+| `help` | `-h`, `--help` | Show usage information, package commands included. |
 | `version` | `-V`, `--version` | Print the Freezed version. |
+| `<name>` | | A command registered by a package or the project, see [Package commands](#package-commands). |
+
+An unknown command fails with a message; `freezed` without a command builds.
 
 ### `freezed build`
 
@@ -93,6 +96,48 @@ image — including the source content and `quality` — is part of the generate
 filename, so a change always produces a new file. Use it to clear out the
 superseded files that accumulate there, for instance after upgrading Freezed or
 after a round of image tweaking.
+
+### `freezed run`
+
+Builds once, serves `public/` in the background and watches for changes in
+the foreground. A flag named like a registered command starts that command
+as a second background process, stopped together with the server:
+
+```bash
+./vendor/bin/freezed run --desk        # site on :8080, Desk UI on :8081
+```
+
+## Package commands
+
+A package adds commands to `freezed` by declaring them in its
+`composer.json`:
+
+```json
+"extra": {
+    "freezed": {
+        "commands": {
+            "desk": "Neuedaten\\FreezedDesk\\Commands\\ServeCommand",
+            "desk:show": "Neuedaten\\FreezedDesk\\Commands\\ShowCommand"
+        }
+    }
+}
+```
+
+A project adds or overrides commands with the [`commands`](configuration.md#commands)
+key of `freezed.config.php`. Each class implements
+`Neuedaten\Freezed\Commands\CommandInterface`:
+
+```php
+public function execute(array $args, array $options): int;
+```
+
+`$args` holds the positional arguments after the command name, `$options`
+the parsed `--key:value` options. The command runs after the project
+configuration has been loaded into the `ConfigService` and logging has been
+configured, but before the core validates the project's directories: it
+calls `ProjectPathsService::getInstance()->validate()` itself, once it has
+prepared whatever the project needs (a folder it declares, for instance).
+Names are lowercase (`desk`, `desk:show`) and cannot take a built-in name.
 
 ## Project root detection
 

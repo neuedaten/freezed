@@ -2,7 +2,10 @@
 
 namespace Neuedaten\Freezed\Commands;
 
+use Neuedaten\Freezed\Services\CommandRegistryService;
+use Neuedaten\Freezed\Services\ConfigService;
 use Neuedaten\Freezed\Services\LogService;
+use Neuedaten\Freezed\Services\ProcessService;
 use Neuedaten\Freezed\Services\ServeService;
 use Neuedaten\Freezed\Services\WatchService;
 
@@ -11,12 +14,17 @@ use Neuedaten\Freezed\Services\WatchService;
  * on every change.
  *
  * The web server runs as a background process while the file watcher stays in
- * the foreground. On Ctrl+C the server is shut down cleanly.
+ * the foreground. A flag named like a registered command (`--desk`) starts
+ * that command in the background as well. On Ctrl+C everything is shut down
+ * cleanly.
  */
 class RunCommand
 {
     /** @var array{proc: resource, pipes: array}|null */
     private ?array $serverHandle = null;
+
+    /** @var array<int, array{proc: resource, pipes: array, name: string}> */
+    private array $processHandles = [];
 
     public function execute(): int
     {
@@ -30,6 +38,14 @@ class RunCommand
         // 2) Start the web server in the background.
         $this->serverHandle = $serve->startBackground();
 
+        // 2b) Registered commands asked for by flag, e.g. --desk.
+        $buildConfig = ConfigService::getInstance()->getValue('[buildConfig]') ?? [];
+        foreach (array_keys(CommandRegistryService::getInstance()->all()) as $name) {
+            if (($buildConfig[$name] ?? null) === true) {
+                $this->processHandles[] = ProcessService::getInstance()->startCommand($name);
+            }
+        }
+
         // 3) Make sure the server is stopped when this process ends.
         $this->registerShutdownHandlers($log, $serve);
 
@@ -42,6 +58,12 @@ class RunCommand
     private function registerShutdownHandlers(LogService $log, ServeService $serve): void
     {
         $stop = function () use ($log, $serve): void {
+            foreach ($this->processHandles as $handle) {
+                $log->notice('Stopping freezed ' . $handle['name'] . '...');
+                ProcessService::getInstance()->stop($handle);
+            }
+            $this->processHandles = [];
+
             if ($this->serverHandle !== null) {
                 $log->notice('Stopping server...');
                 $serve->stop($this->serverHandle);
